@@ -1,0 +1,156 @@
+
+包含了各种需要用到的线代方面的类和计算 如向量和矩阵
+用到了es6的class 继承自Float32Array【其实本质上就是Float32Array 就套了层壳
+虽然可以用以前的原型链的方式实现 但还是懒
+
+所有的元素都可以很方便的用下标的方式访问,如m[13]
+因为是数组 你也可以很方便的写函数来实现库中暂时没有的功能 如function quat4ToMat3(quat4){...return new Mat3([...])};
+
+C（mean Change）开头的方法会改变自身 如:
+var m4=new Math.gl.Mat4();
+m4.Cmultiply(m4)    类似m4*=m4; 稍有不同的是会返回自身 所以可以这么玩m4*=m4*=m4
+!!! 有个不是C开头却改变自身的特例是identity
+
+矩阵类：================
+四阶方阵：
+class Mat4 extends Float32Array{
+    //构造函数
+    constructor();                      =>new Float32Array(16);【零矩阵
+    //下面几个长度不足16的都会以0填充  长度大于16的只会填充到16 多的不理会
+    constructor(Number,Number,...);     =>new Float32Array([Number,Number,...]);【可能移除
+    constructor(Array);                 =>new Float32Array(Array);
+    constructor(Float32Array);          =>new Float32Arrar(Float32Arrar);
+    
+    //乘法
+    multiply(Mat4|Number);  =>new Mat4
+    mul(Mat4|Number);       =>new Mat4
+    ["*"](Mat4|Number);     =>new Mat4
+    Cmultiply(Mat4|Number); =>this
+    Cmul(Mat4|Number);      =>this
+    ["*="](Mat4|Number);    =>this
+    
+    //初始化为单位矩阵
+    identity();     =>this  要是想要单位矩阵可以用 Mat4.identity() 或 Mat4.identity
+    get ["=e"];     =>this
+    get ["=i"];     =>this
+    
+    //初始化为零矩阵
+    get ["=o"];     =>this
+    get ["=0"];     =>this
+    
+    //根据向量缩放
+    scale(Vec3);    =>new Mat4
+    Cscale(Vec3);   =>this【没用到 未完成
+    
+    //根据向量平移
+    translate(Vec3);    =>new Mat4
+    Ctranslate(Vec3);   =>this
+    
+    //旋转角度(弧度) 旋转轴向量
+    Crotate(Number,Vec3);   =>this
+    rotate(Number,Vec3);    =>new Mat4
+    
+    //视图变换矩阵
+    //镜头位置向量 镜头参考点向量 镜头方向向量
+    //将镜头理解为头 镜头方向就是头顶的朝向
+    //位置 朝向 上方向
+    lookAt(Vec3,Vec3,Vec3);     =>new Mat4
+    ClookAt(Vec3,Vec3,Vec3);    =>this
+    
+    //投影变换矩阵
+    //视角 屏幕高宽比 近截面位置>0 远截面位置
+    perspective(Number,Number,Number,Number);   =>new Mat4
+    Cperspective(Number,Number,Number,Number);  =>new Mat4
+    
+    //转置
+    transpose();    =>new Mat4
+    Ctranspose();   =>this【没用到 未实现
+    
+    //逆矩阵
+    inverse();      =>new Mat4
+    Cinverse();     =>this
+    
+    //视图变换矩阵2     太笨 不会用lookAt就自己弄了个。。
+    //玩家坐标 x轴视角 y轴视角 倾倒度数(单位为弧度 默认为0)
+    lookat(Vec3,Number,Number,Number);  =>new Mat4
+}
+
+
+三阶方阵：
+
+二阶方阵：
+
+
+向量类：================
+四维向量：
+三维向量：
+class Vec3 extends Float32Array{
+    //构造函数
+    constructor();                      =>new Vec3(3)
+    constructor(Number,Number,Number);  =>new Vec3([Number,Number,Number])
+    constructor(Array);                 =>new Vec3(Array)
+    constructor(Float32Array);          =>new Vec3(Float32Array)
+    
+    //getter setter
+    x   =>this[0]
+    y   =>this[1]
+    z   =>this[2]
+    
+    //向量加法
+    add(Vec3);      =>new Vec3
+    ["+"](Vec3);    =>new Vec3
+    
+    //向量减法
+    subtract(Vec3); =>new Vec3
+    sub(Vec3);      =>new Vec3
+    ["-"](Vec3);    =>new Vec3
+    
+    //向量积 外积 叉积
+    multiply(Vec3);     =>new Vec3
+    mul(Vec3);          =>new Vec3
+    //["x"](Vec3);        =>new Vec3    与getter和setter冲突 取消
+    ["^"](Vec3);        =>new Vec3
+    ["*"](Vec3|Number); =>当参数是Vec3时new Vec3 当参数是Number时实行数乘操作返回Number
+    
+    //数量积 内积 点积
+    ["."](Vec3);【没用到 未实现
+    
+    //向量除法？？？
+    divide(Vec3);   =>new Vec3
+    div(Vec3);      =>new Vec3
+    ["/"](Vec3);    =>new Vec3
+    
+    //向量长度
+    length();   =>Number
+    len();      =>Number
+    len         =>Number
+    
+    //向量数乘运算
+    scale(Number);      =>Number
+    ["*"](Vec3|Number); =>当参数是Number时Number 当参数是Vec3时实行叉乘操作返回new Vec3
+    
+    //反向量
+    negate();   =>new Vec3
+    
+    //逆向量？
+    inverse();  =>new Vec3
+    
+    //感觉有问题 暂时和谐 用到了再说吧
+    //rotateX(Vec3,Number);   =>new Vec3
+    //rotateY(Vec3,Number);   =>new Vec3
+    //rotateZ(Vec3,Number);   =>new Vec3
+    
+    
+    exactEquals(Vec3);  =>Bool
+    ["==="](Vec3);      =>Bool
+    
+    equals(Vec3);   =>Bool
+    ["=="](Vec3);   =>Bool
+    
+    transformMat4(Met4);    =>new Vec3
+    
+}
+二维向量：
+
+
+四元数：================
