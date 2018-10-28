@@ -1,0 +1,26 @@
+{
+    "options_page": {
+        "pageType": "float",
+        "filePath": "res/page/options_page.html"
+    },
+    "play_game_page": {
+        "pageType": "jump",
+        "filePath": "res/page/play_game_page.html"
+    },
+    "select_world_page": {
+        "pageType": "float",
+        "filePath": "res/page/select_world_page.html"
+    },
+    "start_game_page": {
+        "pageType": "jump",
+        "filePath": "res/page/start_game_page.html"
+    },
+    "stop_game_page": {
+        "pageType": "float",
+        "filePath": "res/page/stop_game_page.html"
+    },
+    "loading_terrain_page": {
+        "pageType": "float",
+        "filePath": "res/page/loading_terrain_page.html"
+    }
+}
