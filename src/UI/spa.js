@@ -74,7 +74,7 @@ const spa = {
         import("/src/loadResources.js")
         .then(({asyncLoadResByUrl}) => asyncLoadResByUrl("src/UI/spaDefaultLoad.json"))
         .then(config => {
-            for (var id in config) {
+            for (let id in config) {
                 this.enrollPageByURL(config[id].filePath, config[id].pageType, id).then(_ => {
                     if (config[id].include) import(config[id].include);
                 });

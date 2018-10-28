@@ -76,7 +76,7 @@ asyncLoadResByUrl("/res/texture/gui/background/panorama_0.png")
           canvas = new Canvas2D(),
           outImg = new Image();
     outImg.onload = function() {
-        import("/src/loadResources.js").then(({setResources}) => {
+        import("/src/loadResources.js").then(({setResource}) => {
             setResource("/res/texture/gui/background", this);
         });
     };
@@ -85,6 +85,6 @@ asyncLoadResByUrl("/res/texture/gui/background/panorama_0.png")
     for(let imgCount=0; imgCount<6; ++imgCount)
         canvas.drawImage(await asyncLoadResByUrl(`/res/texture/gui/background/panorama_${imgCount}.png`),
                          0,0,width,height,imgCount*width,0,width,height);
-    img.src = canvas.toDataURL();
+    outImg.src = canvas.toDataURL();
 })
 .catch(err => {throw err});

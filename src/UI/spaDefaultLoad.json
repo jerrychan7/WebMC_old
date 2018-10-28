@@ -13,7 +13,8 @@
     },
     "start_game_page": {
         "pageType": "jump",
-        "filePath": "res/page/start_game_page.html"
+        "filePath": "res/page/start_game_page.html",
+        "include": "/src/UI/render_start_game_page.js"
     },
     "stop_game_page": {
         "pageType": "float",
