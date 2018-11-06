@@ -54,32 +54,28 @@ spa.addEventListener("start_game_page", "load", pageID => {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-//    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(uniTex.loc, 0);
 
     var fovy = 120,
         vM = new Mat4().identity().ClookAt([0, 0, 0], [-1, 0, 0], [0, 1, 0]),
-        vpM = new Mat4().identity().Cperspective(fovy, canvas.width/canvas.height, 0.1, 10).mul(vM);
+        vpM = new Mat4().identity().Cperspective(fovy, canvas.width/canvas.height, 0.1, 10).mul(vM),
+        mM = new Mat4().identity();
     gl.uniformMatrix4fv(uniMvp.loc, false, vpM);
-    render.gl = gl;
     render.onresize = () => {
         const {w, h} = gl.fitScreen();
         vpM = new Mat4().identity().Cperspective(fovy, w/h, 0.1, 10).mul(vM);
     };
     window.addEventListener("resize", render.onresize);
     render.stopFlag = false;
-    render.play = (() => {
-        var count = 0, PI = Math.PI, cos = Math.cos, indexLength = index.length;
-    return function animation(){
+    render.play = function animation(){
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        var rad = (count++/4 % 360) * PI / 180;
-        gl.uniformMatrix4fv(uniMvp.loc, false, vpM.mul(new Mat4().identity().Crotate(rad, [0, 1, 0])));
-        gl.drawElements(gl.TRIANGLES, indexLength, gl.UNSIGNED_SHORT, 0);
+        gl.uniformMatrix4fv(uniMvp.loc, false, vpM.mul(mM.Crotate(Math.PI / 180 / 4, [0, 1, 0])));
+        gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
         gl.flush();
         if(!this.stopFlag)
             window.requestAnimationFrame(animation.bind(this));
     };
-    })();
 
     render.play();
     render.onresize();
