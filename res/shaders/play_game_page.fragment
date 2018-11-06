@@ -1,0 +1,17 @@
+#ifdef GL_ES
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+    #else
+        //precision mediump float;
+        precision lowp float;
+    #endif
+#endif
+
+uniform sampler2D texture;
+varying vec4 vColor;
+varying vec2 vTextureCoord;
+
+void main(void){
+    vec4 smpColor = texture2D(texture, vTextureCoord);
+    gl_FragColor = vColor * smpColor;
+}

@@ -5,7 +5,8 @@
     },
     "play_game_page": {
         "pageType": "jump",
-        "filePath": "res/page/play_game_page.html"
+        "filePath": "res/page/play_game_page.html",
+        "include": "/src/UI/render_play_game_page.js"
     },
     "select_world_page": {
         "pageType": "float",
@@ -22,6 +23,7 @@
     },
     "loading_terrain_page": {
         "pageType": "float",
-        "filePath": "res/page/loading_terrain_page.html"
+        "filePath": "res/page/loading_terrain_page.html",
+        "include": "/src/UI/loading_terrain_page.js"
     }
 }
