@@ -1,51 +1,58 @@
 
-let private = Symbol.for.bind(Symbol);
-
 export default class Control {
-    contructor(canvas) {
+    constructor(canvas) {
         this.canvas = canvas;
         this.doc = canvas.ownerDocument;
-        this[private("callbacks")] = {};
+        this[Symbol.for("callbacks")] = {};
         this.keys = [];
-        doc.addEventListener("keydown", this[private("onKeyDown")].bind(this), false);
-        doc.addEventListener("keyup", this[private("onKeyUp")].bind(this), false);
-        canvas.addEventListener("mousedown", this[private("onMouseDown")].bind(this), false);
-        canvas.addEventListener("mouseup", this[private("onMouseUp")].bind(this), false);
-        canvas.addEventListener("mousemove", this[private("onMouseMove")].bind(this), false);
-        canvas.addEventListener("mousewheel", this[private("onMouseWheel")].bind(this), false);
-        canvas.addEventListener("DOMMouseScroll", this[private("onMouseWheel")].bind(this), false);
+        canvas.requestPointerLock = canvas.requestPointerLock    ||
+                                    canvas.mozRequestPointerLock ||
+                                    canvas.webkitRequestPointerLock;
+        this.doc.addEventListener("keydown", this[Symbol.for("onKeyDown")].bind(this), false);
+        this.doc.addEventListener("keyup", this[Symbol.for("onKeyUp")].bind(this), false);
+        canvas.addEventListener("mousedown", this[Symbol.for("onMouseDown")].bind(this), false);
+        canvas.addEventListener("mouseup", this[Symbol.for("onMouseUp")].bind(this), false);
+        canvas.addEventListener("mousemove", this[Symbol.for("onMouseMove")].bind(this), false);
+        canvas.addEventListener("mousewheel", this[Symbol.for("onMouseWheel")].bind(this), false);
+        canvas.addEventListener("DOMMouseScroll", this[Symbol.for("onMouseWheel")].bind(this), false);
         canvas.addEventListener("contextmenu", e => {e.preventDefault();}, false);
     };
 
-    [private("onKeyDown")](e) {
-        this.keys[e.width] = this.keys[String.fromCharCode(e.width)] = true;
-        this[private("targetEvent")]("keydown", e);
+    [Symbol.for("onKeyDown")](e) {
+        this.keys[e.keyCode] = this.keys[String.fromCharCode(e.keyCode)] = true;
+        this[Symbol.for("targetEvent")]("keydown", e);
+        return true;
     };
-    [private("onKeyUp")](e) {
-        this.keys[e.width] = this.keys[String.fromCharCode(e.width)] = false;
-        this[private("targetEvent")]("keydown", e);
+    [Symbol.for("onKeyUp")](e) {
+        this.keys[e.keyCode] = this.keys[String.fromCharCode(e.keyCode)] = false;
+        this[Symbol.for("targetEvent")]("keydown", e);
+        return true;
     };
-    [private("onMouseDown")](e) {
-        this[private("targetEvent")]("mousedown", e);
+    [Symbol.for("onMouseDown")](e) {
+        this[Symbol.for("targetEvent")]("mousedown", e);
+        return true;
     };
-    [private("onMouseUp")](e) {
-        this[private("targetEvent")]("mouseup", e);
+    [Symbol.for("onMouseUp")](e) {
+        this[Symbol.for("targetEvent")]("mouseup", e);
+        return true;
     };
-    [private("onMouseMove")](e) {
-        this[private("targetEvent")]("mousemove", e);
+    [Symbol.for("onMouseMove")](e) {
+        this[Symbol.for("targetEvent")]("mousemove", e);
+        return true;
     };
-    [private("onMouseWheel")](e) {
-        this[private("targetEvent")]("mousewheel", e);
+    [Symbol.for("onMouseWheel")](e) {
+        this[Symbol.for("targetEvent")]("mousewheel", e);
+        return true;
     };
 
-    [private("targetEvent")](event, e) {
-        if (event in this[private("callbacks")])
-            this[private("callbacks")][event].forEach(fn => fn(e));
+    [Symbol.for("targetEvent")](event, e) {
+        if (event in this[Symbol.for("callbacks")])
+            this[Symbol.for("callbacks")][event].forEach(fn => fn(e));
     };
 
     addEventListener(event, callback) {
-        if (event in this[private("callbacks")])
-            this[private("callbacks")][event].push(callback);
-        else this.[private("callbacks")][event] = [callback];
+        if (event in this[Symbol.for("callbacks")])
+            this[Symbol.for("callbacks")][event].push(callback);
+        else this[Symbol.for("callbacks")][event] = [callback];
     };
 };

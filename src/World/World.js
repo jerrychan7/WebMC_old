@@ -6,14 +6,15 @@ import Player from "/src/Entity/Player.js";
 export default class World {
     constructor() {
         this.allBlock = null;
-        this.sizeX = 10;
-        this.sizeY = 10;
-        this.sizeZ = 10;
+        this.sizeX = 16;
+        this.sizeY = 16;
+        this.sizeZ = 16;
         this.initAllBlock();
         this.createFlatWorld();
         this.mainPlayer = new Player();
+        this.mainPlayer.setWorld(this);
         this.mainPlayer.x = this.sizeX/2;
-        this.mainPlayer.y = this.sizeY;
+        this.mainPlayer.y = this.sizeY/2+5;
         this.mainPlayer.z = this.sizeZ/2;
     };
 
@@ -34,10 +35,10 @@ export default class World {
             for (var k=0; k<z; k++){
                 var j = 0;
                 for (var _j=y>>1; j<_j; j++){
-                    this.setTitle(i, j, k, blocks.getBlockByBlockName("stone"));
+                    this.setTile(i, j, k, "stone");
                 }
                 for (; j<y; j++) {
-                    this.setTitle(i, j, k, blocks.getBlockByBlockName("air"));
+                    this.setTile(i, j, k, "air");
                 }
             }
         }
@@ -47,10 +48,14 @@ export default class World {
         this.render = render;
         render.world = this;
     };
-    setTitle(x, y, z, block) {
-        this.allBlock[x][y][z] = block;
+    setTile(x, y, z, blockName = "air") {
+        this.allBlock[x][y][z] = blocks.getBlockByBlockName(blockName);
     };
-    getTitle(x, y, z) {
+    getTile(x, y, z) {
+//        x = ~~x; y = ~~y; z = ~~z;
+        x = Math.round(x); y = Math.round(y); z = Math.round(z);
+        if (x>=this.sizeX || y>=this.sizeY || z>=this.sizeZ || x<0 || y<0 || z<0)
+            return blocks.getBlockByBlockName("air");
         return this.allBlock[x][y][z];
     };
 }

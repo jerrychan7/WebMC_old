@@ -111,7 +111,7 @@ export default class Mat4 extends Float32Array {
             0, 0, 0, 1
         );
     };
-    static get identity(){return Mat4.identity();};
+    static get identity(){return new Mat4().identity();};
     identity(){
         this[0] =1; this[1] =0; this[2] =0; this[3] =0;
         this[4] =0; this[5] =1; this[6] =0; this[7] =0;

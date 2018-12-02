@@ -84,6 +84,7 @@ function blockTextureCoord2uv(block) {
 export default class Block {
     constructor(blockName, {
         opacity = 16,
+        luminance = 0,
         renderType = Block.renderType.NORMAL,
         textureImg = defaultBlockTextureImg,
         texture = [[16, 32]]
@@ -98,6 +99,7 @@ export default class Block {
         };
         blockTextureCoord2uv(this);
         this.opacity = opacity;
+        this.luminance = luminance;
     };
 
     static get renderType() {
