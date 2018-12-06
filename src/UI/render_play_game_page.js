@@ -32,52 +32,109 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
     render.gl = gl;
 
     render.allRegion = {};
-    render.refreshRegion = function(rx, rz) {
+    render.getRegionLightLevel = function(rx, rz) {
+        return render.allRegion[rx+','+rz]? render.allRegion[rx+','+rz].lightLevel: null;
+    };
+    render.refreshRegionLightLevel = function(rx, rz) {
         const regionKey = rx + ',' + rz,
               {sizeX, sizeY, sizeZ} = this.world;
-        var vertexPosition = [], texture = [],
-            lightLevel = new Array(16), color = [];
-        for (var i=0; i<16; ++i) {
-            lightLevel[i] = new Array(sizeY);
-            for (var j=0; j<sizeY; ++j)
-                lightLevel[i][j] = new Array(16);
-        }
         /*
         最后计算方块当前亮度的时候: max(0,min(15,天光-方块不透明度+方块亮度)) 队列处理光照渲染
         不透明度范围0~16，不透明度为0是透明但不影响亮度的意思，
         不透明度为16是不透明的意思 在渲染时两个不透明度为16的紧挨着将不会渲染这两个面
         */
+        rx *= 1; rz *= 1;
+        if (rx<0 || rz<0 || rx>=(sizeX>>4) || rz>=(sizeZ>>4)) return;
+        var lightLevel = this.getRegionLightLevel(rx, rz);
+        if (!lightLevel) {
+            lightLevel = new Array(16);
+            for (var i=0; i<16; ++i) {
+                lightLevel[i] = new Array(sizeY);
+                for (var j=0; j<sizeY; ++j){
+                    lightLevel[i][j] = new Array(16);
+                    for (var k=0; k<16; ++k)
+                        lightLevel[i][j][k] = 0;
+                }
+            }
+        }
+        var list = [], rerefresh = new Set();
         for (var i=0; i<16; ++i)
           for (var k=0; k<16; ++k)
             for (var j=sizeY-1; ~j; --j) {
-                if (this.world.getTile(i+(rx<<4), j, k+(rz<<4)).name === "air")
+                if (this.world.getTile(i+(rx<<4), j, k+(rz<<4)).name === "air") {
                     lightLevel[i][j][k] = 15;
+                    if ((i==15||i==0) && this.world.getTile(i+(rx<<4)+(i? 1: -1), j, k).opacity) {
+                        var ll = this.getRegionLightLevel(rx+(i? 1: -1), rz);
+                        if (ll) {
+                            ll = ll[i? 0: 15][j][k];
+                            if (ll<14) rerefresh.add([rx+(i? 1: -1), rz]+"");
+                        }
+                    }
+                    if ((k==15||k==0) && this.world.getTile(i, j, k+(rz<<4)+(k? 1: -1)).opacity) {
+                        var ll = this.getRegionLightLevel(rx, rz+(k? 1: -1));
+                        if (ll) {
+                            ll = ll[i][j][k? 0: 15];
+                            if (ll<14) rerefresh.add([rx, rz+(k? 1: -1)]+"");
+                        }
+                    }
+                }
                 else break;
             }
-        var list = [];
-        for (var j=sizeY-1; ~j; --j)
-          for (var i=0; i<16; ++i)
-            for (var k=0; k<16; ++k)
-                if (!lightLevel[i][j][k])
+        for (var i=0; i<16; ++i)
+          for (var k=0; k<16; ++k)
+            for (var j=sizeY-1; ~j; --j)
+                if (lightLevel[i][j][k] != 15)
                     list.push([i, j, k]);
+
         while (list.length) {
-            var [i, j, k] = list.shift(),
-                block = this.world.getTile(i, j, k);
-            lightLevel[i][j][k] = block.opacity>15? 0:
+            var [i, j, k] = list.shift();
+            lightLevel[i][j][k] = this.world.getTile(i+(rx<<4), j, k+(rz<<4)).opacity>15? 0:
                 [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
                 .reduce((ans, [x, y, z]) => {
-                    if (x>=16 || x<0 || y>=sizeY || y<0 || z>=16 || z<0 || (!lightLevel[x][y][z]))
+                    if (y>=sizeY || y<0 || x+(rx<<4)>=sizeX || z+(rz<<4)>=sizeZ)
                         return ans;
-                    var b = this.world.getTile(x, y, z);
-                    return Math.max(ans, Math.min(15, lightLevel[x][y][z]-b.opacity+b.luminance-(b.name==="air")));
+                    var ll = (x>=16 || z>=16)?
+                             this.getRegionLightLevel(rx+(x>=16), rz+(z>=16)):
+                             (x<0 || z<0)?
+                             this.getRegionLightLevel(rx-(x<0), rz-(z<0)):
+                             lightLevel;
+
+                    if (!ll) return ans;
+                    ll = ll[x>=0? x%16: 15][y][z>=0? z%16: 15];
+                    var b = this.world.getTile(x+(rx<<4), y, z+(rz<<4));
+                    return Math.max(ans, Math.min(15, ll-b.opacity+b.luminance-(b.name==="air")));
                 }, 0);
             [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]].forEach(([x, y, z]) => {
-                if (x>=16 || x<0 || y>=sizeY || y<0 || z>=16 || z<0)
+                if (y>=sizeY || y<0 || x+(rx<<4)>=sizeX || z+(rz<<4)>=sizeZ)
                     return;
-                if (lightLevel[x][y][z]<lightLevel[i][j][k])
-                    list.unshift([x, y, z]);
+                var ll = (x>=16 || z>=16)?
+                         this.getRegionLightLevel(rx+(x>=16), rz+(z>=16)):
+                         (x<0 || z<0)?
+                         this.getRegionLightLevel(rx-(x<0), rz-(z<0)):
+                         lightLevel;
+                if (!ll) return;
+                ll = ll[~x? x%16: 15][y][~z? z%16: 15];
+                if (ll<lightLevel[i][j][k]){
+                    if (x>=16 || z>=16) rerefresh.add([rx+(x>=16), rz+(z>=16)]+"");
+                    else if (x<0 || z<0) rerefresh.add([rx-(x<0), rz-(z<0)]+"");
+                    else list.unshift([x, y, z]);
+                }
             });
         }
+        this.allRegion[regionKey] = this.allRegion[regionKey] || {};
+        this.allRegion[regionKey].lightLevel = lightLevel;
+        console.log(regionKey, rerefresh);
+        rerefresh.forEach(s => {
+            var [x, z] = s.split(",");
+            this.refreshRegion(x, z);
+        });
+    };
+    render.refreshRegionModel = function(rx, rz) {
+        const regionKey = rx + ',' + rz,
+              {sizeX, sizeY, sizeZ} = this.world;
+        if (rx>(sizeX>>4) || rz>sizeZ>>4) return;
+        var vertexPosition = [], texture = [], color = [],
+            lightLevel = this.getRegionLightLevel(rx, rz);
 
         for (var j=0; j<sizeY; ++j) {
           for (var i=rx<<4,_i=i+16; i<_i; ++i) {
@@ -94,8 +151,8 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
                             vertexPosition.push(...block.vertex[key].map((v, ind) => ind%3===0? v+i: ind%3===1? v+j: v+k));
                             texture.push(...block.texture.uv[key]);
                             color.push(...[...Array(len/3*4)].map(_ =>
-                                Math.pow(0.9, 15-lightLevel[x%16][y][z%16])*0.9)
-                            );
+                                Math.pow(0.9, 15-this.getRegionLightLevel(x>>4, z>>4)[x%16][y][z%16])*0.9
+                            ));
                         });
                         break;}
                     }
@@ -111,18 +168,27 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
                     out.push(...base.map(x => x+j));
                 return out;
             })(vertexPosition.length/12);
-        this.allRegion[regionKey] = {
-            pos: this.gl.createVbo(vertexPosition),
-            col: this.gl.createVbo(color),
-            tex: this.gl.createVbo(texture),
-            ibo: this.gl.createIbo(index),
-            iboLen: index.length
-        };
+        this.allRegion[regionKey] = this.allRegion[regionKey] || {};
+        this.allRegion[regionKey].pos = this.gl.createVbo(vertexPosition);
+        this.allRegion[regionKey].col = this.gl.createVbo(color);
+        this.allRegion[regionKey].tex = this.gl.createVbo(texture);
+        this.allRegion[regionKey].ibo = this.gl.createIbo(index);
+        this.allRegion[regionKey].iboLen = index.length;
+        console.log(regionKey, this.allRegion[regionKey].lightLevel);
+    };
+    render.refreshRegion = function(rx, rz) {
+        render.refreshRegionLightLevel(rx, rz);
+        render.refreshRegionModel(rx, rz);
     };
 
     for (var i=0,_i=world.sizeX>>4; i<_i; i++){
         for (var j=0,_j=world.sizeZ>>4; j<_j; j++){
-            render.refreshRegion.call(render, i, j);
+            render.refreshRegionLightLevel.call(render, i, j);
+        }
+    }
+    for (var i=0,_i=world.sizeX>>4; i<_i; i++){
+        for (var j=0,_j=world.sizeZ>>4; j<_j; j++){
+            render.refreshRegionModel.call(render, i, j);
         }
     }
 
@@ -168,7 +234,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         gl.flush();
 
         if(!this.stopFlag)
-            window.requestAnimationFrame(animation.bind(this));
+            window.requestAnimationFrame(this.play.bind(this));
     };
 
     render.play();

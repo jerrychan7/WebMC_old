@@ -18,23 +18,32 @@ export default class Player extends Entity {
             //在锁定指针的状态下
             drag = !drag;//这个是因为后面pointerLockChange也会运行
 
-            var world = this.world, render = world.render,
-                {x: px, y: py, z: pz, pitch, yaw} = this,
-                {sin, cos, round} = Math, dr = 0.1;
-            for (var r=0,x,y,z; r<50; r+=dr) {
-                x = round(px - r*cos(pitch)*sin(yaw)),
-                y = round(py + r*sin(pitch)),
-                z = round(pz - r*cos(pitch)*cos(yaw));
-                if (y<0) break;
-                if (y<world.sizeY && world.getTile(x, y, z).name !== "air") {
-                    world.setTile(x, y, z, "air");
-                    render.refreshRegion(x>>4, z>>4);
-                    if (x%16==15 || !(x%16))
-                        render.refreshRegion((x%16? x+1: x-1)>>4, z>>4);
-                    if (z%16==15 || !(z%16))
-                        render.refreshRegion(x>>4, (z%16? z+1: z-1)>>4);
-                    break;
+            // left button
+            if (e.button === 0) {
+                var world = this.world, render = world.render,
+                    {x: px, y: py, z: pz, pitch, yaw} = this,
+                    {sin, cos, round} = Math, dr = 0.1;
+                for (var r=0,x,y,z; r<50; r+=dr) {
+                    x = round(px - r*cos(pitch)*sin(yaw)),
+                    y = round(py + r*sin(pitch)),
+                    z = round(pz - r*cos(pitch)*cos(yaw));
+                    if (y<0) break;
+                    if (y<world.sizeY && world.getTile(x, y, z).name !== "air") {
+                        console.log([x, y, z]);
+                        world.setTile(x, y, z, "air");
+                        render.refreshRegion(x>>4, z>>4);
+                        if (x%16==15 || !(x%16))
+                            render.refreshRegion((x%16? x+1: x-1)>>4, z>>4);
+                        if (z%16==15 || !(z%16))
+                            render.refreshRegion(x>>4, (z%16? z+1: z-1)>>4);
+                        break;
+                    }
                 }
+            }
+
+            // right button
+            else if (e.button === 2) {
+
             }
 
                 /*//https://stackoverflow.com/questions/20140711/picking-in-3d-with-ray-tracing-using-ninevehgl-or-opengl-i-phone/20143963#20143963
@@ -135,7 +144,7 @@ export default class Player extends Entity {
         if (f(this.x, Math.floor(y), this.z)) this.y = y;
         else this.y = Math.round(y);
 
-        document.getElementById("out").innerHTML = `x: ${this.x}<br>y: ${this.y}<br>z: ${this.z}`;
+        document.getElementById("out").innerHTML = `x: ${this.x}<br>y: ${this.y}<br>z: ${this.z}<br>yaw: ${this.yaw}<br>pitch: ${this.pitch}`;
     };
 
 }

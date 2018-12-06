@@ -6,9 +6,9 @@ import Player from "/src/Entity/Player.js";
 export default class World {
     constructor() {
         this.allBlock = null;
-        this.sizeX = 16;
-        this.sizeY = 16;
-        this.sizeZ = 16;
+        this.sizeX = 32;
+        this.sizeY = 32;
+        this.sizeZ = 32;
         this.initAllBlock();
         this.createFlatWorld();
         this.mainPlayer = new Player();
