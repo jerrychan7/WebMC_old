@@ -30,12 +30,10 @@ export default class Player extends Entity {
                     if (y<0) break;
                     if (y<world.sizeY && world.getTile(x, y, z).name !== "air") {
                         console.log([x, y, z]);
+//                        var t = new Date();
                         world.setTile(x, y, z, "air");
-                        render.refreshRegion(x>>4, z>>4);
-                        if (x%16==15 || !(x%16))
-                            render.refreshRegion((x%16? x+1: x-1)>>4, z>>4);
-                        if (z%16==15 || !(z%16))
-                            render.refreshRegion(x>>4, (z%16? z+1: z-1)>>4);
+                        render.refreshBlock(x, y, z);
+//                        console.log(new Date() - t);
                         break;
                     }
                 }
@@ -43,7 +41,25 @@ export default class Player extends Entity {
 
             // right button
             else if (e.button === 2) {
-
+                var world = this.world, render = world.render,
+                    {x: px, y: py, z: pz, pitch, yaw} = this,
+                    {sin, cos, round} = Math, dr = 0.1;
+                for (var r=0,x,y,z,lx,ly,lz; r<50; r+=dr) {
+                    x = round(px - r*cos(pitch)*sin(yaw));
+                    y = round(py + r*sin(pitch));
+                    z = round(pz - r*cos(pitch)*cos(yaw));
+                    if (x===lx && y===ly && z===lz) continue;
+                    if (y<0) break;
+                    if (y<world.sizeY && world.getTile(x, y, z).name !== "air") {
+                        if (lx !== px && lz !== pz && (ly !== py || ly !== py-1)){
+                            console.log([lx, ly, lz]);
+                            world.setTile(lx, ly, lz, "grass");
+                            render.refreshBlock(lx, ly, lz);
+                        }
+                        break;
+                    }
+                    lx = x; ly = y; lz = z;
+                }
             }
 
                 /*//https://stackoverflow.com/questions/20140711/picking-in-3d-with-ray-tracing-using-ninevehgl-or-opengl-i-phone/20143963#20143963
@@ -124,11 +140,11 @@ export default class Player extends Entity {
         speedYaw *= Math.PI/180;
 
 
-        var f = (x, z) => {
-            var _x = ~~x, _z = ~~z;
-            return [this.world.getTile(_x-0.5>x? x-1: x>_x+0.5? x+1: x, this.y, _z-0.5>z? z-1: z>_z+0.5? z+1: z),
-                    this.world.getTile(_x-0.5>x? x-1: x>_x+0.5? x+1: x, this.y-1, _z-0.5>z? z-1: z>_z+0.5? z+1: z)];
-        };
+//        var f = (x, z) => {
+//            var _x = ~~x, _z = ~~z;
+//            return [this.world.getTile(_x-0.5>x? x-1: x>_x+0.5? x+1: x, this.y, _z-0.5>z? z-1: z>_z+0.5? z+1: z),
+//                    this.world.getTile(_x-0.5>x? x-1: x>_x+0.5? x+1: x, this.y-1, _z-0.5>z? z-1: z>_z+0.5? z+1: z)];
+//        };
         var playerVelocity = 0.1,
             f = (i, j, k) =>
                 this.world.getTile(i, j, k).name === "air" &&
@@ -140,8 +156,9 @@ export default class Player extends Entity {
             if (f(this.x, this.y, z)) this.z = z;
         }
 //        var y = this.y + (keys.X||keys[16]?-1:keys[32]?1:0)*playerVelocity;
+//        this.y = y;
         var y = this.y + (keys[32]? 0.2: -0.1);
-        if (f(this.x, Math.floor(y), this.z)) this.y = y;
+        if (f(this.x, ~~y, this.z)) this.y = y;
         else this.y = Math.round(y);
 
         document.getElementById("out").innerHTML = `x: ${this.x}<br>y: ${this.y}<br>z: ${this.z}<br>yaw: ${this.yaw}<br>pitch: ${this.pitch}`;
