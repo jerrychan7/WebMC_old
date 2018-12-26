@@ -77,7 +77,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
             lightLevel = new Array(16);
             for (var i=0; i<16; ++i) {
                 lightLevel[i] = new Array(sizeY);
-                for (var j=0; j<sizeY; ++j){
+                for (var j=0; j<sizeY; ++j) {
                     lightLevel[i][j] = new Array(16);
                     for (var k=0; k<16; ++k)
                         lightLevel[i][j][k] = 0;
@@ -87,136 +87,122 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         this.allRegion[regionKey] = this.allRegion[regionKey] || {};
         this.allRegion[regionKey].lightLevel = lightLevel;
 
-        let list = [], list2 = [], rerefresh = new Set(), rerefreshModel = new Set();
+        var rerefresh = new Set(),
+            priorityQueue = new class extends Array {
+                pop() {
+                    delete this[this[0].join()];
+                    return super.shift();
+                };
+                push(zb) {
+                    var k = zb.join();
+                    if (this[k]) return this.length;
+                    this[k] = true;
+                    super.push(zb);
+//                    super.sort(this.sortFn);
+                    return this.length;
+                };
+            };
+//        priorityQueue.sortFn = ([x1, y1, z1], [x2, y2, z2]) =>
+//            this.getBlockLightLevel(rxb+x2, y2, rzb+z2) - this.getBlockLightLevel(rxb+x1, y1, rzb+z1);
+        const lighting = (x, y, z) => {
+//                if (x<0 || x>=sizeX || z<0 || z>=sizeZ || y<0 || y>=sizeY)
+//                    return false;
+                let l = this.getBlockLightLevel(x, y, z);
+                if (!l) return false;
+                let b = this.world.getTile(x, y, z);
+                if (l === 15 || b.luminance !== 0)
+                    return true;
+                for (const [d, e, f] of [[x+1,y,z], [x-1,y,z], [x,y+1,z], [x,y-1,z], [x,y,z+1], [x,y,z-1]])
+                    if (this.getBlockLightLevel(d, e, f) === l+1 && lighting(d, e, f))
+                        return true;
+                return false;
+            },
+              computeLightLevel = (arountLightLevel, centerBlock) =>
+                Math.max(0, Math.min(15, arountLightLevel - centerBlock.opacity + centerBlock.luminance - (centerBlock.name === "air")));
+
         for (var i=0; i<16; ++i) {
           for (var k=0; k<16; ++k) {
-              for (var j=sizeY-1; j>=0; --j) {
+            for (var j=sizeY-1; j>=0; --j) {
                 var block = this.world.getTile(i+rxb, j, k+rzb);
                 if (block.name === "air") {
                     lightLevel[i][j][k] = 15;
-                    if ((i === 0 || i === 15) && this.world.getTile(rxb+(i? 16: -1), j, rzb+k).luminance === 0 &&
-                       this.world.getTile(rxb+(i? 16: -1), j, rzb+k).opacity<16 && this.getBlockLightLevel(rxb+(i? 16: -1), j, rzb+k) < 14)
-                        rerefresh.add((rx+(i? 1: -1)) + ',' + rz);
-                    if ((k===15||k===0) && this.world.getTile(rxb+i, j, rzb+(k? 16: -1)).luminance === 0 &&
-                       this.world.getTile(rxb+i, j, rzb+(k? 16: -1)).opacity<16 && this.getBlockLightLevel(rxb+i, j, rzb+(k? 16: -1)) < 14)
-                        rerefresh.add(rx + ',' + (rz+(k? 1: -1)));
+                    if (i===0 || i===15) {
+                        var x = rxb+(i? 16: -1), b = this.world.getTile(x, j, rzb+k);
+                        if (b.luminance === 0 && b.opacity < 16 && this.getBlockLightLevel(x, j, rzb+k) < 14)
+                            rerefresh.add((rx+(i? 1: -1)) + ',' + rz);
+                    }
+                    if (k===0 || k===15) {
+                        var z = rzb+(k? 16: -1), b = this.world.getTile(rxb+i, j, z);
+                        if (b.luminance === 0 && b.opacity < 16 && this.getBlockLightLevel(rxb+i, j, z) < 14)
+                            rerefresh.add(rx + ',' + (rz+(k? 1: -1)));
+                    }
                 }
                 else {
-                    for (; ~j; --j) {
+                    if (j !== sizeY-1)
+                        priorityQueue.push([i, j+1, k]);
+                    for (; ~j ; --j) {
+                        block = this.world.getTile(i+rxb, j, k+rzb);
                         lightLevel[i][j][k] = block.luminance;
-                        list.push([i, j, k]);
+                        if (lightLevel[i][j][k] !== 0
+                           || ((i===0 || i===15) && lighting(rxb+(i? 16: -1), j, rzb+k))
+                           || ((k===0 || k===15) && lighting(rxb+i, j, rzb+(k? 16: -1))))
+                            priorityQueue.push([i, j, k]);
+                        else if (block.opacity < 16)
+                            for (const [x, y, z] of [[i+1, j, k], [i-1, j, k], [i, j, k+1], [i, j, k-1]]) {
+                                if (x<0 || x>15 || z<0 || z>15) continue;
+                                if (lightLevel[x][y][z] > 1) {
+                                    lightLevel[i][j][k] = computeLightLevel(lightLevel[x][y][z], block);
+                                    priorityQueue.push([i, j, k]);
+                                    break;
+                                }
+                            }
                     }
-                    break;
                 }
             }
           }
         }
 
-        while (list.length) {
-            var [i, j, k] = list.shift(),
-                block  = this.world.getTile(i+rxb, j, k+rzb),
-                old = lightLevel[i][j][k];
-            if (block.luminance) lightLevel[i][j][k] = block.luminance;
-            else if (block.opacity>15) lightLevel[i][j][k] = 0;
-            else {
-                var t1 = [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
-                         .reduce((ans, [x, y, z]) => {
-                             if (y>=sizeY || y<0 || x+rxb>=sizeX || z+rzb>=sizeZ)
-                                 return ans;
-                             var ll = this.getBlockLightLevel(x+rxb, y, z+rzb);
-                             if (!ll) return ans;
-                             var b = this.world.getTile(x+rxb, y, z+rzb);
-                             return Math.max(ans, Math.min(15, ll-b.opacity+b.luminance-(b.name==="air")));
-                         }, 0);
-                if (i===0 || i===15 || k===0 || k===15) {
-                    var t2 = [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
-                             .reduce((ans, [x, y, z]) => {
-                                 if (x<0 || x>=16 || z<0 || z>=16 || y>=sizeY || y<0)
-                                     return ans;
-                                 var ll = this.getBlockLightLevel(x+rxb, y, z+rzb);
-                                 if (!ll) return ans;
-                                 var b = this.world.getTile(x+rxb, y, z+rzb);
-                                 return Math.max(ans, Math.min(15, ll-b.opacity+b.luminance-(b.name==="air")));
-                             }, 0);
-                    if (t1 > t2+1 || t1 < t2-1) {
-                        var fn = (a, b, c) => {
-                                var ll = this.getBlockLightLevel(a, b, c),
-                                    ans = [[a, b, c]];
-                                if (ll === 15 || this.world.getTile(a, b, c).luminance !== 0)
-                                    return ans;
-                                for (const [d, e, f] of [[a+1,b,c], [a-1,b,c], [a,b+1,c], [a,b-1,c], [a,b,c+1], [a,b,c-1]]) {
-                                    if (this.getBlockLightLevel(d, e, f) === ll+1) {
-                                        ans.push(...fn(d, e, f));
-                                        var [x, y, z] = ans[ans.length-1];
-                                        if (this.getBlockLightLevel(x, y, z) === 15 || this.world.getTile(x, y, z).luminance !== 0)
-                                            break;
-                                    }
-                                }
-                                return ans;
-                            };
-                        var ans = (i===0 || i===15)? fn(rxb+(i? 16: -1), j, rzb+k):
-                                  (k===0 || k===15)? fn(rxb+i, j, rzb+(k? 16: -1)):
-                                  false;
-                        if (ans) {
-                            var [a, b, c] = ans[ans.length-1];
-                            if (this.getBlockLightLevel(a, b, c) === 15 || this.world.getTile(a, b, c).luminance !== 0)
-                                lightLevel[i][j][k] = t1;
-                            else if (Math.abs(Math.min(t1, t2) - this.getBlockLightLevel(a, b, c)) >= 2) {
-                                ans.forEach(([a, b, c]) => {
-                                    rerefresh.add((a>>4) +','+ (c>>4));
-                                });
-                                list2.push([i, j, k]);
-                            }
-                        }
-                    }
-                    else lightLevel[i][j][k] = t1;
-                }
-                else lightLevel[i][j][k] = t1;
+        while (priorityQueue.length) {
+            var [i, j, k] = priorityQueue.pop(),
+                cll = lightLevel[i][j][k],
+                cblock = this.world.getTile(rxb+i, j, rzb+k);
+            if (cblock.opacity>15 && cblock.luminance === 0) {
+                lightLevel[i][j][k] = 0;
+                continue;
             }
-            [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]].forEach(([x, y, z]) => {
-                if (y>=sizeY || y<0 || x+rxb>=sizeX || z+rzb>=sizeZ)
+            [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
+            .forEach(([a, b, c]) => {
+                var wx = a+rxb, wy = b, wz = rzb+c;
+                if (wx<0 || wx>=sizeX || wz<0 || wz>=sizeZ || wy<0 || wy>=sizeY)
                     return;
-                var ll = this.getBlockLightLevel(x+rxb, y, z+rzb);
-                if (ll < lightLevel[i][j][k]-1 && this.world.getTile(x+rxb, y, z+rzb).opacity<16) {
-                    if (x>=16 || z>=16) rerefresh.add([rx+(x>=16), rz+(z>=16)]+"");
-                    else if (x<0 || z<0) rerefresh.add([rx-(x<0), rz-(z<0)]+"");
-                    else list.unshift([x, y, z]);
+                var ablock = this.world.getTile(wx, wy, wz),
+                    ll = this.getBlockLightLevel(wx, wy, wz);
+                if (ll > cll+1) {
+                    if (a===-1 || a===16 || c===-1 || c===16) {
+                        if (lighting(wx, wy, wz)) {
+                            lightLevel[i][j][k] = computeLightLevel(ll, cblock);
+                            priorityQueue.push([i, j, k]);
+                        }
+                        else rerefresh.add((wx>>4) + ',' + (wz>>4));
+                    }
+                    else {
+                        lightLevel[i][j][k] = computeLightLevel(ll, cblock);
+                        priorityQueue.push([i, j, k]);
+                    }
+                }
+                else if (ll < cll-1) {
+                    if (a===-1 || a===16 || c===-1 || c===16) {
+                        if (ablock.opacity<16) rerefresh.add((wx>>4) + ',' + (wz>>4));
+                    }
+                    else {
+                        lightLevel[a][b][c] = computeLightLevel(cll, ablock);
+                        priorityQueue.push([a, b, c]);
+                    }
                 }
             });
         }
 
-        console.log(regionKey, rerefresh);
-        rerefresh.forEach(s => {
-            var [x, z] = s.split(",");
-            this.refreshRegionLightLevel(x, z);
-        });
-        rerefresh = new Set();
-
-        while (list2.length) {
-            var [i, j, k] = list2.shift(),
-                block = this.world.getTile(i+rxb, j, k+rzb),
-                old = lightLevel[i][j][k];
-            lightLevel[i][j][k] = block.luminance || block.opacity>15? 0:
-                [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
-                .reduce((ans, [x, y, z]) => {
-                    if (y>=sizeY || y<0 || x+rxb>=sizeX || z+rzb>=sizeZ)
-                        return ans;
-                    var ll = this.getBlockLightLevel(x+rxb, y, z+rzb);
-                    if (!ll) return ans;
-                    var b = this.world.getTile(x+rxb, y, z+rzb);
-                    return Math.max(ans, Math.min(15, ll-b.opacity+b.luminance-(b.name==="air")));
-                }, 0);
-            [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]].forEach(([x, y, z]) => {
-                if (y>=sizeY || y<0 || x+rxb>=sizeX || z+rzb>=sizeZ)
-                    return;
-                var ll = this.getBlockLightLevel(x+rxb, y, z+rzb);
-                if (ll < lightLevel[i][j][k]-1 && this.world.getTile(x+rxb, y, z+rzb).opacity<16){
-                    if (x>=16 || z>=16) rerefresh.add([rx+(x>=16), rz+(z>=16)]+"");
-                    else if (x<0 || z<0) rerefresh.add([rx-(x<0), rz-(z<0)]+"");
-                    else list2.unshift([x, y, z]);
-                }
-            });
-        }
+//        console.log(regionKey, rerefresh);
         rerefresh.forEach(s => {
             var [x, z] = s.split(",");
             this.refreshRegionLightLevel(x, z);
@@ -233,7 +219,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
 
 
         var blockFace = this.getRegionBlockFace(rx, rz);
-        if (!blockFace){
+        if (!blockFace) {
             blockFace = new Array(16);
             for (var i=0; i<16; ++i) {
                 blockFace[i] = new Array(sizeY);
@@ -251,7 +237,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
             for (var k=rz<<4,_k=k+16; k<_k; ++k) {
                 var block = this.world.getTile(i, j, k);
                 if (block.name === "air") continue;
-                switch(block.renderType){
+                switch(block.renderType) {
                 case Block.renderType.NORMAL: {
                     var bf = blockFace[i%16][j][k%16];
                     [[i+1,j,k,"x+"], [i-1,j,k,"x-"], [i,j+1,k,"y+"], [i,j-1,k,"y-"], [i,j,k+1,"z+"], [i,j,k-1,"z-"]].forEach(([x, y, z, key]) => {
@@ -316,89 +302,127 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         if (this.getRegionLightLevel(rx, rz) === null)
             return this.refreshRegionLightLevel(rx, rz);
 
-        var setBlockLightLevel = (x, y, z, ll) => {
-                if (this.setBlockLightLevel(x, y, z, ll)) {
-                    this.refreshBlock.lightLevelRerefresh(x, y, z);
-                };
-            };
+        const setBlockLightLevel = (x, y, z, ll) => {
+                  if (ll !== this.getBlockLightLevel(x, y, z) && this.setBlockLightLevel(x, y, z, ll)) {
+                      this.refreshBlock.lightLevelRerefresh(x, y, z);
+                      return true;
+                  }
+                  return false;
+              },
+              computeLightLevel = (arountLightLevel, centerBlock) =>
+                  Math.max(0, Math.min(15, arountLightLevel - centerBlock.opacity + centerBlock.luminance - (centerBlock.name === "air"))),
+              lighting = (x, y, z) => {
+                  let l = this.getBlockLightLevel(x, y, z);
+                  if (!l) return false;
+                  let b = this.world.getTile(x, y, z);
+                  if (l === 15 || b.luminance !== 0)
+                      return true;
+                  for (const [d, e, f] of [[x+1,y,z], [x-1,y,z], [x,y+1,z], [x,y-1,z], [x,y,z+1], [x,y,z-1]])
+                      if (this.getBlockLightLevel(d, e, f) === l+1 && lighting(d, e, f))
+                          return true;
+                  return false;
+              };
 
-        var list = [];
-        if (this.world.getTile(bx, by+1, bz).name === "air" &&
-           this.getBlockLightLevel(bx, by+1, bz) === 15) {
-            for (var y=by; ~y; --y) {
-                if (this.world.getTile(bx, y, bz).name === "air") {
+        var queue = new class extends Array {
+                pop() {
+                    delete this[this[0].join()];
+                    return super.shift();
+                };
+                push(zb) {
+                    var k = zb.join();
+                    if (this[k]) return this.length;
+                    this[k] = true;
+                    super.push(zb);
+                    return this.length;
+                };
+            },
+            obstructed = by;
+        while (obstructed<sizeY &&
+               this.world.getTile(bx, ++obstructed, bz).opacity === 0);
+        if (obstructed === sizeY) {
+            for (var y=sizeY-1; ~y && this.world.getTile(bx, y, bz).opacity===0; --y) {
+                if (this.getBlockLightLevel(bx, y, bz) !== 15) {
                     setBlockLightLevel(bx, y, bz, 15);
-                    [[bx+1, y, bz], [bx-1, y, bz],
-                     [bx, y, bz+1], [bx, y, bz-1]]
-                    .forEach(([i, j, k]) => {
-                        if (this.getBlockLightLevel(i, j, k) < 14 &&
-                           this.world.getTile(i, j, k).luminance === 0 &&
-                           this.world.getTile(i, j, k).opacity < 16) {
-                            list.push([i, j, k]);
+                    queue.push([bx, y, bz]);
+                    continue;
+                }
+                for (const [i, j, k] of [[bx+1, y, bz], [bx-1, y, bz], [bx, y, bz+1], [bx, y, bz-1]]) {
+                    let ll = this.getBlockLightLevel(i, j, k);
+                    if (ll < 14) {
+                        if (setBlockLightLevel(i, j, k, computeLightLevel(15, this.world.getTile(i, j, k)))) {
+                            queue.push([i, j, k]);
                         }
+                    }
+                }
+            }
+            if (this.world.getTile(bx, by, bz).opacity !== 0) {
+                let com = computeLightLevel(14, this.world.getTile(bx, by, bz));
+                if (com !== this.getBlockLightLevel(bx, by, bz)) {
+                    setBlockLightLevel(bx, by, bz, com);
+                    queue.push([bx, by, bz]);
+                    for (var y = by-1; ~y && this.world.getTile(bx, y, bz).opacity===0; --y) {
+                        setBlockLightLevel(bx, y, bz, this.world.getTile(bx, y, bz).luminance);
+                        queue.push([bx, y, bz]);
+                    }
+                }
+            }
+
+        }
+        else {
+            for (var y = obstructed-1; y>by && this.world.getTile(bx, y, bz).opacity===0; --y) {
+                setBlockLightLevel(bx, y, bz, this.world.getTile(bx, y, bz).luminance);
+                queue.push([bx, y, bz]);
+            }
+            if (this.world.getTile(bx, by, bz).opacity !== 0 || obstructed === by+1) {
+                let b = this.world.getTile(bx, by, bz);
+                if (b.opacity>15 && b.luminance === 0) {
+                    setBlockLightLevel(bx, by, bz, 0);
+                    [[bx+1, y, bz], [bx-1, y, bz], [bx, y, bz+1], [bx, y, bz-1]].forEach(([x, y, z]) => {
+                        if (this.getBlockLightLevel(x, y, z) !== 15) {
+                            setBlockLightLevel(x, y, z, computeLightLevel(0, this.world.getTile(x, y, z)));
+                        }
+                        queue.push([x, y, z]);
                     });
                 }
                 else {
-                    setBlockLightLevel(bx, y, bz, 0);
-                    if (y === by || this.world.getTile(bx, y, bz).opacity<16){
-                        for (--y; ~y && this.world.getTile(bx, y, bz).name === "air"; --y) {
-                            setBlockLightLevel(bx, y, bz, 0);
-                            list.push([bx, y, bz]);
-                        }
-                    }
-                    break;
+                    setBlockLightLevel(bx, by, bz, b.luminance);
+                    queue.push([bx, by, bz]);
                 }
             }
+            for (var y = by-1; ~y && this.world.getTile(bx, y, bz).opacity===0; --y) {
+                setBlockLightLevel(bx, y, bz, this.world.getTile(bx, y, bz).luminance);
+                queue.push([bx, y, bz]);
+            }
         }
-        else list.push([bx, by, bz]);
 
-        while (list.length) {
-            console.log(list.join("| "));
-            var [i, j, k] = list.shift(),
-                block  = this.world.getTile(i, j, k),
-                old = this.getBlockLightLevel(i, j, k),
-                t1 = -1;
-            if (block.luminance) setBlockLightLevel(i, j, k, block.luminance);
-            else if (block.opacity>15) setBlockLightLevel(i, j, k, 0);
-            else
-                setBlockLightLevel(i, j, k,
-                    [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
-                    .reduce((ans, [x, y, z]) => {
-                        if (y<0 || y>=sizeY || x<0 || x>=sizeX || z<0 || z>=sizeZ) return ans;
-                        var ll = this.getBlockLightLevel(x, y, z);
-                        if (!ll) return ans;
-                        var flag = false, que = [[x, y, z]];
-                        while (que.length) {
-                            var [a, b, c] = que.shift(),
-                                cll = this.getBlockLightLevel(a, b, c);
-                            if (cll === 15 || this.world.getTile(a, b, c).luminance !== 0) {
-                                flag = true;
-                                break;
-                            }
-                            [[a+1,b,c], [a-1,b,c], [a,b+1,c], [a,b-1,c], [a,b,c+1], [a,b,c-1]]
-                            .forEach(([d, e, f]) => {
-                                if (this.getBlockLightLevel(d, e, f) === cll+1) que.unshift([d, e, f]);
-                            });
-                        }
-                        if (!flag) {
-                            list.unshift([x, y, z]);
-                            return ans;
-                        }
-                        var b = this.world.getTile(x, y, z);
-                        return Math.max(ans, Math.min(15, ll-b.opacity+b.luminance-(b.name==="air")));
-                    }, 0)
-                 );
-            var cll = this.getBlockLightLevel(i, j, k);
-            [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]].forEach(([x, y, z]) => {
-                if (y>=sizeY || y<0 || x>=sizeX || z>=sizeZ || x<0 || z<0)
-                    return;
-                var ll = this.getBlockLightLevel(x, y, z);
-                if (ll < cll-1 && this.world.getTile(x, y, z).opacity<16) {
-                    list.unshift([x, y, z]);
+        while (queue.length) {
+            let [i, j, k] = queue.pop(),
+                cll = this.getBlockLightLevel(i, j, k),
+                cblock = this.world.getTile(i, j, k);
+            if (cblock.opacity>15 && cblock.luminance === 0) {
+                setBlockLightLevel(i, j, k, 0);
+                continue;
+            }
+            [[i+1,j,k], [i-1,j,k], [i,j+1,k], [i,j-1,k], [i,j,k+1], [i,j,k-1]]
+            .forEach(([a, b, c]) => {
+                var ll = this.getBlockLightLevel(a, b, c),
+                    ablock = this.world.getTile(a, b, c);
+                if (ll > cll+1) {
+                    if (lighting(a, b, c)) {
+                        setBlockLightLevel(i, j, k, computeLightLevel(ll, cblock));
+                        queue.push([i, j, k]);
+                    }
+                    else {
+                        setBlockLightLevel(a, b, c, computeLightLevel(cll, ablock));
+                        queue.push([a, b, c]);
+                    }
+                }
+                else if (ll < cll-1) {
+                    setBlockLightLevel(a, b, c, computeLightLevel(cll, ablock));
+                    queue.push([a, b, c]);
                 }
             });
         }
-
     };
     render.refreshBlockModel = function(bx, by, bz) {
         bx = Math.round(bx); by = Math.round(by); bz = Math.round(bz);
@@ -507,7 +531,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         });
     };
     render.refreshBlock.run = function() {
-        console.log([...this.rerefreshRegion].join(", "));
+//        console.log([...this.rerefreshRegion].join(", "));
         this.rerefreshRegion.forEach(regionKey => {
             const [rx, rz] = regionKey.split(",").map(r => r*1);
             var vertexPosition = [], color = [], texture = [], bf = render.getRegionBlockFace(rx, rz);
@@ -541,14 +565,14 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         this.rerefreshRegion = new Set();
     };
 
-    for (var i=0,_i=world.sizeX>>4; i<_i; i++){
-        for (var j=0,_j=world.sizeZ>>4; j<_j; j++){
+    for (var i=0,_i=world.sizeX>>4; i<_i; i++) {
+        for (var j=0,_j=world.sizeZ>>4; j<_j; j++) {
             render.refreshRegionLightLevel.call(render, i, j);
         }
     }
     render.refreshRegion.rerefreshRegion = new Set();
-    for (var i=0,_i=world.sizeX>>4; i<_i; i++){
-        for (var j=0,_j=world.sizeZ>>4; j<_j; j++){
+    for (var i=0,_i=world.sizeX>>4; i<_i; i++) {
+        for (var j=0,_j=world.sizeZ>>4; j<_j; j++) {
             render.refreshRegionModel.call(render, i, j);
         }
     }
@@ -563,10 +587,10 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         get() { return canvas.width/canvas.height; },
         set(v) {}
     });
-    var fovy = render.fovy = 90,
+    var fovy = render.fovy = 78,
         p = world.mainPlayer,
         vM = new Mat4().identity().lookat([p.x, p.y, p.z], p.yaw, p.pitch),
-        pM = new Mat4().identity().Cperspective(fovy, render.aspectRatio, 0.1, 500),
+        pM = new Mat4().identity().Cperspective(fovy, render.aspectRatio, 0.01, 500),
         mM = new Mat4().identity();
     p.setControl(new Control(canvas));
     gl.uniformMatrix4fv(uniMvp.loc, false, pM["*"](vM).mul(mM));
@@ -577,7 +601,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
     };
     window.addEventListener("resize", render.onresize);
     render.stopFlag = false;
-    render.play = function animation(){
+    render.play = function animation() {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         p.upData();
         vM = Mat4.identity.lookat([p.x, p.y, p.z], p.yaw, p.pitch);
