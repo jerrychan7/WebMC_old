@@ -69,6 +69,34 @@ export default class GlUtils {
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
     };
 
+    setUniform(uniName, value) {
+        const gl = this.gl,
+              uni = this.getCurrentUniforms()[uniName];
+        switch (uni.type) {
+        case gl.FLOAT_MAT4:
+            gl.uniformMatrix4fv(uni.loc, false, value);
+            break;
+        case gl.FLOAT:
+            gl.uniform1f(uni.loc, value);
+            break;
+        case gl.SAMPLER_CUBE: case gl.SAMPLER_2D:
+            gl.uniform1i(uni.loc, value);
+            break;
+        case gl.FLOAT_VEC2:
+            gl.uniform2fv(uni.loc, value);
+            break;
+        case gl.FLOAT_VEC3:
+            gl.uniform3fv(uni.loc, value);
+            break;
+        case gl.FLOAT_VEC4:
+            gl.uniform4fv(uni.loc, value);
+            break;
+        default:
+            console.warn("don't know gl type", uni.type, "for uniform", name);
+        }
+        return this;
+    }
+
     createTexture(img, doYFlip = false) {
         const {gl} = this,
               tex = gl.createTexture();

@@ -43,7 +43,8 @@ export default class Player extends Entity {
             else if (e.button === 2) {
                 var world = this.world, render = world.render,
                     {x: px, y: py, z: pz, pitch, yaw} = this,
-                    {sin, cos, round} = Math, dr = 0.1;
+                    {sin, cos, round} = Math, dr = 0.1,
+                    [rpx, rpy, rpz] = [px, py, pz].map(round);
                 for (var r=0,x,y,z,lx,ly,lz; r<50; r+=dr) {
                     x = round(px - r*cos(pitch)*sin(yaw));
                     y = round(py + r*sin(pitch));
@@ -51,10 +52,13 @@ export default class Player extends Entity {
                     if (x===lx && y===ly && z===lz) continue;
                     if (y<0) break;
                     if (y<world.sizeY && world.getTile(x, y, z).name !== "air") {
-                        if (lx !== px && lz !== pz && (ly !== py || ly !== py-1)){
+//                        console.log({lx, ly, lz, rpx, rpy, rpz});
+                        if (lx !== rpx || lz !== rpz || (ly !== rpy && ly !== rpy-1)) {
                             console.log([lx, ly, lz]);
+//                            var t = new Date();
                             world.setTile(lx, ly, lz, "grass");
                             render.refreshBlock(lx, ly, lz);
+//                            console.log(new Date() - t);
                         }
                         break;
                     }
@@ -140,15 +144,11 @@ export default class Player extends Entity {
         speedYaw *= Math.PI/180;
 
 
-//        var f = (x, z) => {
-//            var _x = ~~x, _z = ~~z;
-//            return [this.world.getTile(_x-0.5>x? x-1: x>_x+0.5? x+1: x, this.y, _z-0.5>z? z-1: z>_z+0.5? z+1: z),
-//                    this.world.getTile(_x-0.5>x? x-1: x>_x+0.5? x+1: x, this.y-1, _z-0.5>z? z-1: z>_z+0.5? z+1: z)];
-//        };
         var playerVelocity = 0.1,
             f = (i, j, k) =>
                 this.world.getTile(i, j, k).name === "air" &&
                 this.world.getTile(i, j-1, k).name === "air";
+//            f = (x, z) => true;
         if (keys.A || keys.D || keys.S || keys.W) {
             var x = this.x + playerVelocity* -Math.sin(speedYaw),
                 z = this.z + playerVelocity* -Math.cos(speedYaw);

@@ -8,10 +8,24 @@
 #endif
 
 uniform sampler2D texture;
+uniform float useTex;
+uniform vec3 fogColor;
+uniform vec2 fogDist;
+varying float vDist;
 varying vec4 vColor;
 varying vec2 vTextureCoord;
 
 void main(void){
-    vec4 smpColor = texture2D(texture, vTextureCoord);
-    gl_FragColor = vColor * smpColor;
+    if (useTex == 1.0) {
+        vec4 smpColor = texture2D(texture, vTextureCoord);
+        gl_FragColor = vColor * smpColor;
+        
+        // linear fog
+        vec4 c = gl_FragColor;
+        gl_FragColor = vec4(mix(fogColor, vec3(c),
+            clamp((fogDist[1]-vDist)/(fogDist[1]-fogColor[0]), 0.0, 1.0)), c.a);
+    }
+    else {
+        gl_FragColor = vColor;
+    }
 }

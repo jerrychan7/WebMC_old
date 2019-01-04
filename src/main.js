@@ -10,8 +10,9 @@ import "/src/UI/processingPictures.js";
 
 //转由页面驱动
 import {preloaded} from "./loadResources.js";
-preloaded.onloadend(_ => {
-    blocks.initBlocksByDefault();
+preloaded.onloadend(async _ => {
+    await blocks.initBlocksByDefault();
     console.log("loadend");
     spa.openPage("start_game_page");
+//    spa.openPage("loading_terrain_page");
 });

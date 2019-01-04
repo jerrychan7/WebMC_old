@@ -17,12 +17,22 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
     const canvas = document.getElementById("mainGamePage"),
           gl = new GlUtils(canvas),
           prg = gl.createProgram(shaderSource.vertex, shaderSource.fragment);
-    gl.clearColor(0.62, 0.81, 1.0, 1.0);
+    var fogColor = new Vec3(0.62, 0.81, 1.0),
+        fogDist = [30, 32];
+    gl.clearColor(fogColor[0], fogColor[1], fogColor[2], 1.0);
     gl.clearDepth(1.0);
     gl.enable(gl.DEPTH_TEST);
+	gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);
     gl.frontFace(gl.CCW);
     gl.enable(gl.BLEND);
+//    gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
+//    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+    // 开启多边形偏移
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(1.0, 1.0);          // 设置偏移量
     gl.useProgram(prg);
 
     world.setRender(render);
@@ -248,8 +258,8 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
                             bf2 = bf[key] || {};
                         bf2.pos = block.vertex[key].map((v, ind) => ind%3===0? v+i: ind%3===1? v+j: v+k);
                         bf2.tex = block.texture.uv[key];
-                        bf2.col = [...Array(len/3*4)].map(_ =>
-                            Math.pow(0.9, 16-this.getBlockLightLevel(x, y, z))
+                        bf2.col = [...Array(len/3*4)].map((_, ind) =>
+                            ind%4 === 3? 1.0: Math.pow(0.9, 16-this.getBlockLightLevel(x, y, z))
                         );
                         vertexPosition.push(...bf2.pos);
                         texture.push(...bf2.tex);
@@ -265,7 +275,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         var index = (len => {
                 if (!len) return [];
                 let base = [0,1,2, 0,2,3], out = [];
-                for(let i=0,j=0; i<=len; j=i++*4)
+                for(let i=0,j=0; i<len; j=++i*4)
                     out.push(...base.map(x => x+j));
                 return out;
             })(vertexPosition.length/12),
@@ -304,6 +314,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
 
         const setBlockLightLevel = (x, y, z, ll) => {
                   if (ll !== this.getBlockLightLevel(x, y, z) && this.setBlockLightLevel(x, y, z, ll)) {
+//                      console.log({x, y, z, ll});
                       this.refreshBlock.lightLevelRerefresh(x, y, z);
                       return true;
                   }
@@ -374,10 +385,11 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
                 queue.push([bx, y, bz]);
             }
             if (this.world.getTile(bx, by, bz).opacity !== 0 || obstructed === by+1) {
+//            if (obstructed === by+1) {
                 let b = this.world.getTile(bx, by, bz);
                 if (b.opacity>15 && b.luminance === 0) {
                     setBlockLightLevel(bx, by, bz, 0);
-                    [[bx+1, y, bz], [bx-1, y, bz], [bx, y, bz+1], [bx, y, bz-1]].forEach(([x, y, z]) => {
+                    [[bx+1, by, bz], [bx-1, by, bz], [bx, by, bz+1], [bx, by, bz-1]].forEach(([x, y, z]) => {
                         if (this.getBlockLightLevel(x, y, z) !== 15) {
                             setBlockLightLevel(x, y, z, computeLightLevel(0, this.world.getTile(x, y, z)));
                         }
@@ -396,6 +408,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         }
 
         while (queue.length) {
+//            console.log(queue.join("| "));
             let [i, j, k] = queue.pop(),
                 cll = this.getBlockLightLevel(i, j, k),
                 cblock = this.world.getTile(i, j, k);
@@ -450,8 +463,9 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
                         bf2 = bf[key] || {};
                     bf2.pos = block.vertex[key].map((v, ind) => ind%3===0? v+bx: ind%3===1? v+by: v+bz);
                     bf2.tex = block.texture.uv[key];
-                    bf2.col = [...Array(len/3*4)].map(_ =>
-                        Math.pow(0.9, 16-this.getBlockLightLevel(x, y, z))
+                    bf2.col = [...Array(len/3*4)].map((_, ind) =>
+//                        Math.pow(0.9, 16-this.getBlockLightLevel(x, y, z))
+                        ind%4 === 3? 1.0: Math.pow(0.9, 16-this.getBlockLightLevel(x, y, z))
                     );
                     bf[key] = bf2;
                 });
@@ -479,8 +493,9 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
                         face = {};
                     face.pos = b.vertex[fkey].map((v, ind) => ind%3===0? v+i: ind%3===1? v+j: v+k);
                     face.tex = b.texture.uv[fkey];
-                    face.col = [...Array(len/3*4)].map(_ =>
-                        Math.pow(0.9, 16-cll)
+                    face.col = [...Array(len/3*4)].map((_, ind) =>
+//                        Math.pow(0.9, 16-cll)
+                        ind%4===3? 1.0: Math.pow(0.9, 16-cll)
                     );
                     bf2[fkey] = face;
                 }
@@ -551,7 +566,7 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
             var index = (len => {
                     if (!len) return [];
                     let base = [0,1,2, 0,2,3], out = [];
-                    for(let i=0,j=0; i<=len; j=i++*4)
+                    for(let i=0,j=0; i<len; j=++i*4)
                         out.push(...base.map(x => x+j));
                     return out;
                 })(vertexPosition.length/12),
@@ -583,6 +598,9 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
     gl.bindTexture(gl.TEXTURE_2D, textureImg);
     gl.uniform1i(uniTex.loc, 0);
 
+    gl.setUniform("fogColor", fogColor);
+    gl.setUniform("fogDist", new Float32Array(fogDist));
+
     Object.defineProperty(render, "aspectRatio", {
         get() { return canvas.width/canvas.height; },
         set(v) {}
@@ -607,6 +625,9 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
         vM = Mat4.identity.lookat([p.x, p.y, p.z], p.yaw, p.pitch);
         gl.uniformMatrix4fv(uniMvp.loc, false, pM.mul(vM).mul(mM));
 
+
+        gl.setUniform("useTex", 1.0);
+        gl.disable(gl.BLEND);
         if (this.refreshBlock.rerefreshRegion.size)
             this.refreshBlock.run();
         if (this.refreshRegion.rerefreshRegion.size)
@@ -618,6 +639,66 @@ spa.addEventListener("play_game_page", "load", (pageID, world) => {
             this.gl.bindVboByAttributeName("textureCoord", reg.tex, 2);
             this.gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, reg.ibo);
             this.gl.drawElements(gl.TRIANGLES, reg.iboLen, gl.UNSIGNED_SHORT, 0);
+        }
+
+        var world = this.world, {sizeX, sizeY, sizeZ} = world,
+            {x: px, y: py, z: pz, pitch, yaw} = this.world.mainPlayer,
+            {sin, cos, round} = Math, dr = 0.1;
+        for (var r=0,x,y,z; r<50; r+=dr) {
+            x = round(px - r*cos(pitch)*sin(yaw)),
+            y = round(py + r*sin(pitch)),
+            z = round(pz - r*cos(pitch)*cos(yaw));
+            if (y<0) break;
+            if (y<world.sizeY && world.getTile(x, y, z).name !== "air") {
+                break;
+            }
+        }
+        // 高亮当前所指方块
+        // vbo的内存问题 后面改善
+        if (x>=0 && x<sizeX && z>=0 && z<sizeZ && y>=0 && y<sizeY) {
+            gl.setUniform("useTex", 0.0);
+            gl.enable(gl.BLEND);
+
+            // draw line
+            let vertexPosition = [], llcolor = [], block = world.getTile(x, y, z);
+            switch (block.renderType) {
+            case Block.renderType.NORMAL: {
+                let bf = this.getBlockFace(x, y, z);
+                for (let key in bf) {
+                    vertexPosition.push(...bf[key].pos);
+                    llcolor.push(...bf[key].col);
+                }
+                break;}
+            }
+            let index = (len => {
+                    if (!len) return [];
+                    let base = [0,1, 0,3, 1,2, 2,3], out = [];
+                    for(let i=0,j=0; i<len; j=++i*4)
+                        out.push(...base.map(x => x+j));
+                    return out;
+                })(vertexPosition.length/12),
+                color = llcolor.map((num, ind) => ind%4===3? 0.4: num/0.6561);
+            gl.bindVboByAttributeName("position", gl.createVbo(vertexPosition), 3);
+            gl.bindVboByAttributeName("color", gl.createVbo(color), 4);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createIbo(index));
+            gl.drawElements(gl.LINES, index.length, gl.UNSIGNED_SHORT, 0);
+
+            // draw surface
+            gl.depthMask(false);
+            index = (len => {
+                if (!len) return [];
+                let base = [0,1,2, 0,2,3], out = [];
+                for(let i=0,j=0; i<len; j=++i*4)
+                    out.push(...base.map(x => x+j));
+                return out;
+            })(vertexPosition.length/12);
+            color = llcolor.map((num, ind) => ind%4===3? 0.1: num/0.6561);
+            gl.bindVboByAttributeName("position", gl.createVbo(vertexPosition), 3);
+            gl.bindVboByAttributeName("color", gl.createVbo(color), 4);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createIbo(index));
+            this.gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
+            gl.depthMask(true);
+
         }
 
         gl.flush();
