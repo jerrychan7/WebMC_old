@@ -1,3 +1,8 @@
+# 这个版本已经停止更新，新版本正在秘密开发中:)
+# This version has stopped updating. The new version is under secret development:)
+
+---
+
 # WebMC
 
 这是一个基于WebGL和JavaScript的网页版minecraft。
