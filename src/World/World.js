@@ -1,6 +1,6 @@
 
-import blocks from "/src/Blocks/blocks.js";
-import Player from "/src/Entity/Player.js";
+import blocks from "../Blocks/blocks.js";
+import Player from "../Entity/Player.js";
 //blocks.initBlocksByDefault();
 
 export default class World {

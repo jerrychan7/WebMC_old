@@ -1,15 +1,15 @@
 
-import spa from "/src/UI/spa.js";
-import GlUtils from "/src/util/GlUtils.js";
-import {Mat4, Vec3} from "/src/util/math/glMath.js";
-import {asyncLoadResByUrl, RESOURCES, waitResource} from "/src/loadResources.js";
+import spa from "./spa.js";
+import GlUtils from "../util/GlUtils.js";
+import {Mat4, Vec3} from "../util/math/glMath.js";
+import {asyncLoadResByUrl, RESOURCES, waitResource} from "../loadResources.js";
 
 let shaderSource = {}, render = {};
 asyncLoadResByUrl("res/shaders/start_game_page.vertex")
     .then(s => shaderSource.vertex = s);
 asyncLoadResByUrl("res/shaders/start_game_page.fragment")
     .then(s => shaderSource.fragment = s);
-waitResource("/res/texture/gui/background");
+waitResource("res/texture/gui/background");
 
 spa.addEventListener("start_game_page", "load", pageID => {
     var canvas = document.getElementById("start-game-canvas"),
@@ -49,7 +49,7 @@ spa.addEventListener("start_game_page", "load", pageID => {
           pos = gl.createVbo(vertexPosition),
           tex = gl.createVbo(textureCoord),
           ibo = gl.createIbo(index),
-          texture = gl.createTexture(RESOURCES["/res/texture/gui/background"]);
+          texture = gl.createTexture(RESOURCES["res/texture/gui/background"]);
     gl.bindVboByAttributeName("position", pos, 3);
     gl.bindVboByAttributeName("textureCoord", tex, 2);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);

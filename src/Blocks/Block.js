@@ -1,5 +1,5 @@
 
-import asyncLoadResByUrl from "/src/loadResources.js";
+import asyncLoadResByUrl from "../loadResources.js";
 var defaultBlockTextureImg = null;
 asyncLoadResByUrl("res/texture/terrain-atlas.png").then(img => defaultBlockTextureImg = img);
 

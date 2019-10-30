@@ -5,7 +5,7 @@ const BLOCKS = {};
 
 const blocks = {
     initBlocksByDefault() {
-        return import("/src/loadResources.js")
+        return import("../loadResources.js")
         .then(({asyncLoadResByUrl}) => asyncLoadResByUrl("res/config/blocks.json"))
         .then(cfg => {
             Object.entries(cfg.blocks).forEach(([k, v]) => {

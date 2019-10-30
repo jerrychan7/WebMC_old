@@ -1,6 +1,6 @@
 
-import spa from "/src/UI/spa.js";
-import World from "/src/World/World.js";
+import spa from "./spa.js";
+import World from "../World/World.js";
 
 spa.addEventListener("loading_terrain_page", "load", (pageID, data) => {
     var world = new World();

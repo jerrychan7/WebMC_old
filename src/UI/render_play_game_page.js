@@ -1,10 +1,10 @@
 
-import spa from "/src/UI/spa.js";
-import GlUtils from "/src/util/GlUtils.js";
-import {Mat4, Vec3} from "/src/util/math/glMath.js";
-import Block from "/src/Blocks/Block.js";
-import {asyncLoadResByUrl, RESOURCES} from "/src/loadResources.js";
-import Control from "/src/Control.js";
+import spa from "./spa.js";
+import GlUtils from "../util/GlUtils.js";
+import {Mat4, Vec3} from "../util/math/glMath.js";
+import Block from "../Blocks/Block.js";
+import {asyncLoadResByUrl, RESOURCES} from "../loadResources.js";
+import Control from "../Control.js";
 
 let shaderSource = {}, render = {};
 asyncLoadResByUrl("res/shaders/play_game_page.vertex")

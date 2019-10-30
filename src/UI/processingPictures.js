@@ -1,5 +1,5 @@
 
-import asyncLoadResByUrl from "/src/loadResources.js";
+import asyncLoadResByUrl from "../loadResources.js";
 
 class Canvas2D {
     constructor(width = 0, height = 0) {
@@ -27,7 +27,7 @@ class Canvas2D {
 }
 
 //背景样式
-asyncLoadResByUrl("/res/texture/gui/background.png")
+asyncLoadResByUrl("res/texture/gui/background.png")
 .then(img => {
     const {width, height} = img,
           canvas = new Canvas2D(128, 128),
@@ -39,7 +39,7 @@ asyncLoadResByUrl("/res/texture/gui/background.png")
 .catch(err => {throw err;});
 
 //button
-asyncLoadResByUrl("/res/texture/gui/gui.png")
+asyncLoadResByUrl("res/texture/gui/gui.png")
 .then(img => {
     const {width, height} = img,
           canvas = new Canvas2D(200, 20),
@@ -70,7 +70,7 @@ asyncLoadResByUrl("/res/texture/gui/gui.png")
 .catch(err => {throw err});
 
 //crosshair
-asyncLoadResByUrl("/res/texture/gui/icons.png")
+asyncLoadResByUrl("res/texture/gui/icons.png")
 .then(img => {
     const {width, height} = img,
           canvas = new Canvas2D(32, 32),
@@ -95,20 +95,20 @@ asyncLoadResByUrl("/res/texture/gui/icons.png")
 });
 
 //start_game_canvas image
-asyncLoadResByUrl("/res/texture/gui/background/panorama_0.png")
+asyncLoadResByUrl("res/texture/gui/background/panorama_0.png")
 .then(async img => {
     const {width, height} = img,
           canvas = new Canvas2D(),
           outImg = new Image();
     outImg.onload = function() {
-        import("/src/loadResources.js").then(({setResource}) => {
-            setResource("/res/texture/gui/background", this);
+        import("../loadResources.js").then(({setResource}) => {
+            setResource("res/texture/gui/background", this);
         });
     };
     canvas.setSize((_=>{for(var j=1;_;_>>=1) j<<=1;return j;})(width*6),
                    (_=>{for(var j=1;_;_>>=1) j<<=1;return j;})(height>>1));
     for(let imgCount=0; imgCount<6; ++imgCount)
-        canvas.drawImage(await asyncLoadResByUrl(`/res/texture/gui/background/panorama_${imgCount}.png`),
+        canvas.drawImage(await asyncLoadResByUrl(`res/texture/gui/background/panorama_${imgCount}.png`),
                          0,0,width,height,imgCount*width,0,width,height);
     outImg.src = canvas.toDataURL();
 })

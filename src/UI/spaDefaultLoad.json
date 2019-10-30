@@ -6,7 +6,8 @@
     "play_game_page": {
         "pageType": "jump",
         "filePath": "res/page/play_game_page.html",
-        "include": "/src/UI/render_play_game_page.js"
+        "include": "./render_play_game_page.js",
+        "_include": "/src/UI/render_play_game_page.js"
     },
     "select_world_page": {
         "pageType": "float",
@@ -15,7 +16,8 @@
     "start_game_page": {
         "pageType": "jump",
         "filePath": "res/page/start_game_page.html",
-        "include": "/src/UI/render_start_game_page.js"
+        "include": "./render_start_game_page.js",
+        "_include": "/src/UI/render_start_game_page.js"
     },
     "stop_game_page": {
         "pageType": "float",
@@ -24,6 +26,7 @@
     "loading_terrain_page": {
         "pageType": "float",
         "filePath": "res/page/loading_terrain_page.html",
-        "include": "/src/UI/loading_terrain_page.js"
+        "include": "./loading_terrain_page.js",
+        "_include": "/src/UI/loading_terrain_page.js"
     }
 }

@@ -69,7 +69,7 @@ const spa = {
     },
 
     enrollPageByURL(url, type, id = "") {
-        return import("/src/loadResources.js")
+        return import("../loadResources.js")
                .then(({asyncLoadResByUrl}) => asyncLoadResByUrl(url))
                .then(content => {
                    spa.enrollPage(id || getFileNameNoExt(url), content, type);
@@ -78,7 +78,7 @@ const spa = {
 
     enrollPageByDefault() {
 //        import("./spaDefaultLoad.js").then(({default: config}) => {
-        import("/src/loadResources.js")
+        import("../loadResources.js")
         .then(({asyncLoadResByUrl}) => asyncLoadResByUrl("src/UI/spaDefaultLoad.json"))
         .then(config => {
             for (let id in config) {

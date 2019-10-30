@@ -1,5 +1,5 @@
 
-import Entity from "/src/Entity/Entity.js";
+import Entity from "./Entity.js";
 
 export default class Player extends Entity {
 
