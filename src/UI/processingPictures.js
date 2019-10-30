@@ -51,23 +51,48 @@ asyncLoadResByUrl("/res/texture/gui/gui.png")
     canvas.drawImage(img, 0, 46*height/256, 200*width/256, 20*height/256, 0, 0, 200, 20);
     var b3 = canvas.toDataURL();
     style.innerHTML = ".mc-button{\n"+
-                      `    background-image:url(${b1});\n`+
+                      `    background-image: url(${b1});\n`+
                       "    background-size: 100% 100%;\n"+
                       "    background-repeat: no-repeat;\n"+
                       "    color: #E0E0E0;\n"+
                       "    text-shadow: 1px 1px 1px #383838;\n"+
                       "}\n\n"+
                       ".mc-button:hover {\n"+
-                      `    background-image:url(${b2});\n`+
+                      `    background-image: url(${b2});\n`+
                       "    color: #FFFFA0;\n"+
                       "    text-shadow: 1px 1px 1px #3F3F28;\n"+
                       "}\n\n"+
                       ".mc-button:active {\n"+
-                      `    background-image:url(${b3});\n`+
+                      `    background-image: url(${b3});\n`+
                       "}";
     document.head.appendChild(style);
 })
 .catch(err => {throw err});
+
+//crosshair
+asyncLoadResByUrl("/res/texture/gui/icons.png")
+.then(img => {
+    const {width, height} = img,
+          canvas = new Canvas2D(32, 32),
+          style = document.createElement("style");
+    canvas.drawImage(img, 0, 0, 15*width/256, 15*height/256, 0, 0, 32, 32);
+    style.innerHTML = ".mc-crosshair {\n" +
+                      `    background-image: url(${canvas.toDataURL()});\n` +
+                      "    background-size: 100% 100%;\n" +
+                      "    background-repeat: no-repeat;\n" +
+                      "    pointer-events: none;\n" +
+                      "    display: block;\n" +
+                      "    width: 32px;\n" +
+                      "    height: 32px;\n" +
+                      "    position: absolute;\n" +
+                      "    left: 0;\n" +
+                      "    top: 0;\n" +
+                      "    bottom: 0;\n" +
+                      "    right: 0;\n" +
+                      "    margin: auto auto;\n" +
+                      "}";
+    document.head.appendChild(style);
+});
 
 //start_game_canvas image
 asyncLoadResByUrl("/res/texture/gui/background/panorama_0.png")

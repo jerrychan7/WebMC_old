@@ -2,13 +2,14 @@
 import spa from "/src/UI/spa.js";
 import GlUtils from "/src/util/GlUtils.js";
 import {Mat4, Vec3} from "/src/util/math/glMath.js";
-import {asyncLoadResByUrl, RESOURCES} from "/src/loadResources.js";
+import {asyncLoadResByUrl, RESOURCES, waitResource} from "/src/loadResources.js";
 
 let shaderSource = {}, render = {};
 asyncLoadResByUrl("res/shaders/start_game_page.vertex")
     .then(s => shaderSource.vertex = s);
 asyncLoadResByUrl("res/shaders/start_game_page.fragment")
     .then(s => shaderSource.fragment = s);
+waitResource("/res/texture/gui/background");
 
 spa.addEventListener("start_game_page", "load", pageID => {
     var canvas = document.getElementById("start-game-canvas"),

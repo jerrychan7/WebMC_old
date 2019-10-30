@@ -3,6 +3,8 @@ var allPage = {}, nowPageRoute = [];
 
 const getFileNameNoExt = url => url.match(/([^<>/\\\|:""\*\?]+)\.(\w+$)/)[1];
 
+window.location.hash = "";
+
 const spa = {
     enrollPage(id, content, type = "float") {
         if (id in allPage)
@@ -25,6 +27,7 @@ const spa = {
     },
 
     openPage(nextID = "", data = {}) {
+        if (!nextID) return;
         const nextPage = allPage[nextID];
         if (!nextPage) throw "id为 " + nextID + "的页面不存在";
         const routeLen = nowPageRoute.length,
@@ -44,8 +47,12 @@ const spa = {
         else if (nextPage.type === "float") {
             if (nowID) allPage[nowID].callback.overlap.forEach(f => f(nextID, data));
             document.body.appendChild(nextPage.page);
-            nowPageRoute.push(nextID);
-            nextPage.callback.load.forEach(f => f(nowID, data));
+            function fn(e) {
+                nowPageRoute.push(nextID);
+                nextPage.callback.load.forEach(f => f(nowID, data));
+//                nextPage.page.removeEventListener("DOMContentLoaded", fn, false);
+            };
+            window.setTimeout(fn, 50);
         }
         //jump/float -> new jump   new empty
         else if (nextPage.type === "jump") {
@@ -91,5 +98,6 @@ export {
 
 window.addEventListener("hashchange", _ => {
     const id = window.location.hash.replace("#", "");
+    console.log(id);
     spa.openPage(id);
 });
