@@ -1,7 +1,8 @@
 {
     "options_page": {
         "pageType": "float",
-        "filePath": "res/page/options_page.html"
+        "filePath": "res/page/options_page.html",
+        "include": "./options_page.js"
     },
     "play_game_page": {
         "pageType": "jump",

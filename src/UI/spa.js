@@ -66,6 +66,10 @@ const spa = {
             nowPageRoute = [nextID];
             nextPage.callback.load.forEach(f => f(nowID, data));
         }
+
+        if (window.location.hash.replace("#", "") !== nextID) {
+            window.location.hash = nextID;
+        }
     },
 
     enrollPageByURL(url, type, id = "") {

@@ -3,6 +3,12 @@
 import spa from "./UI/spa.js";
 spa.enrollPageByDefault();
 
+spa.enrollPage("about", "");
+spa.addEventListener("about", "load", function(id) {
+    alert("Dev by qinshou2017.");
+    spa.openPage(id);
+});
+
 import blocks from "./Blocks/blocks.js";
 
 //load resources

@@ -1,16 +1,32 @@
 
 import blocks from "../Blocks/blocks.js";
 import Player from "../Entity/Player.js";
+import {asyncLoadResByUrl} from "../loadResources.js";
 //blocks.initBlocksByDefault();
+
+let config = {
+    size: { x: 2, y: 2, z: 2 },
+    terrain_type: "flat"
+};
+
+asyncLoadResByUrl("src/World/world_config.json")
+.then(cfg => {
+    config = cfg;
+});
 
 export default class World {
     constructor() {
         this.allBlock = null;
-        this.sizeX = 32;
-        this.sizeY = 32;
-        this.sizeZ = 32;
+        console.log(this);
+        this.sizeX = config.size.x * 16;
+        this.sizeY = config.size.y * 16;
+        this.sizeZ = config.size.z * 16;
         this.initAllBlock();
-        this.createFlatWorld();
+        switch (config.terrain_type) {
+            case "flat":
+            default:
+                this.createFlatWorld();
+        }
         this.mainPlayer = new Player();
         this.mainPlayer.setWorld(this);
         this.mainPlayer.x = this.sizeX/2;
