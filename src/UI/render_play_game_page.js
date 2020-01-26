@@ -16,10 +16,11 @@ asyncLoadResByUrl("res/shaders/play_game_page.fragment")
 spa.addEventListener("play_game_page", "load", (pageID, world) => {
     if (pageID !== "loading_terrain_page") return;
     render = new WorldRender(document.getElementById("mainGamePage"), world);
-    window.addEventListener("resize", render.onresize.bind(render));
+    window.addEventListener("resize", render.onresize);
     render.play();
 });
 spa.addEventListener("play_game_page", "unload", pageID => {
+    render.stop();
     window.removeEventListener("resize", render.onresize);
     render = {};
 });

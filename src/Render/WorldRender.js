@@ -66,6 +66,8 @@ export default class Render {
         this.matrixs = {vM: null, pM: null, mM: null};
         this.fovy = 78;
         
+        this.onresize = this.onresize.bind(this);
+        
         if (world !== null) this.setWorld(world);
     };
     get aspectRatio() {
@@ -116,6 +118,7 @@ export default class Render {
         this.model.updataBlock(bx, by, bz);
     };
     stop() {
+        console.log("adsf");
         this.stopFlag = true;
     };
     play() {
@@ -124,6 +127,8 @@ export default class Render {
         this.onresize();
     };
     animation() {
+        if (this.stopFlag) return;
+        
         const {gl, world,
                world:{"mainPlayer": p, sizeX, sizeY, sizeZ}} = this,
               {"mvpMatrix": uniMvp} = gl.getCurrentUniforms();
