@@ -126,7 +126,7 @@ export default class Render {
         this.animation();
         this.onresize();
     };
-    animation() {
+    animation(lastTime, nowTime) {
         if (this.stopFlag) return;
         
         const {gl, world,
@@ -135,7 +135,7 @@ export default class Render {
         let {matrixs: {vM, pM, mM}} = this;
         
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        p.upData();
+        p.upData(((nowTime - lastTime) / 1000) || (1 / 60));
         vM = this.matrixs.vM = Mat4.identity.lookat([p.x, p.y, p.z], p.yaw, p.pitch);
         gl.uniformMatrix4fv(uniMvp.loc, false, pM.mul(vM).mul(mM));
 
@@ -216,7 +216,7 @@ export default class Render {
             gl.bindVboByAttributeName("position", gl.createVbo(vertexPosition), 3);
             gl.bindVboByAttributeName("color", gl.createVbo(color), 4);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createIbo(index));
-            this.gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
+            gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
             gl.depthMask(true);
 
         }
@@ -224,6 +224,6 @@ export default class Render {
         gl.flush();
 
         if(!this.stopFlag)
-            window.requestAnimationFrame(this.animation.bind(this));
+            window.requestAnimationFrame(this.animation.bind(this, nowTime));
     };
 }

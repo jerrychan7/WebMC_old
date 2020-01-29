@@ -25,7 +25,7 @@ export default class Control {
     };
     [Symbol.for("onKeyUp")](e) {
         this.keys[e.keyCode] = this.keys[String.fromCharCode(e.keyCode)] = false;
-        this[Symbol.for("targetEvent")]("keydown", e);
+        this[Symbol.for("targetEvent")]("keyup", e);
         return true;
     };
     [Symbol.for("onMouseDown")](e) {

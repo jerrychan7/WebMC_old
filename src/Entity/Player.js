@@ -1,8 +1,20 @@
 
 import Entity from "./Entity.js";
+import {Vec3} from "../util/math/glMath.js";
 
 export default class Player extends Entity {
 
+    constructor() {
+        super();
+        this.jumpSpeed = 7;
+        this.gravity = 20;
+        this.moveSpeed = 4;
+        this.acc = new Vec3(0, -this.gravity, 0);
+        this.vel = new Vec3();
+        this.rest = new Vec3();
+        this.isFly = false;
+    };
+    
     setControl(controller) {
         this.controller = controller;
 
@@ -124,16 +136,53 @@ export default class Player extends Entity {
             this.yaw -= (e.movementX || e.mozMovementX || e.webkitMovementX || 0) * i / controller.canvas.width;
             this.pitch -= (e.movementY || e.mozMovementY || e.webkitMovementY || 0) * i / controller.canvas.height;
         });
+        
+        let spaceDownTime = 0, spaceUpTime = 0;
+        controller.addEventListener("keyup", e => {
+            if (!controller.keys[" "]) {
+                spaceUpTime = new Date();
+            }
+        });
+        controller.addEventListener("keydown", e => {
+            if (controller.keys[" "]) {
+                if (spaceDownTime - spaceUpTime < 0 && new Date() - spaceDownTime > 90 && new Date() - spaceDownTime < 250) {
+                    if (this.rest.y === 0 && this.isFly === false) {
+                        this.gravity = 0;
+                        this.isFly = true;
+                    }
+                    else if (this.isFly === true) {
+                        this.gravity = 20;
+                        this.isFly = false;
+                    }
+                }
+//                console.log(spaceDownTime - 0, spaceUpTime - 0, spaceDownTime - spaceUpTime, new Date() - spaceDownTime, this.gravity);
+                spaceDownTime = new Date();
+            }
+            if (controller.keys[16] || controller.keys.X) {
+                if (this.isFly) {
+                    this.vel.y -= this.jumpSpeed;
+                }
+//                console.log(this.vel);
+            }
+//            console.log(controller.keys);
+        });
     };
 
-    upData() {
-
+    upData(delta) {
+        
         const {keys} = this.controller;
         if (this.pitch*180/Math.PI < -90)
             this.pitch = -Math.PI/2;
         else if (this.pitch*180/Math.PI > 90)
             this.pitch = Math.PI/2;
-
+        
+        if (keys[32] && this.isFly) {
+            this.vel.y += this.jumpSpeed;
+        }
+        else if (keys[32] && this.vel.y <= 0 && this.rest.y === -1) {
+            this.vel.y += this.jumpSpeed;
+        }
+        
         var speedYaw = this.yaw*180/Math.PI;
         if ((keys.W || keys.S) && (keys.A || keys.D))
             speedYaw -= (keys.A?-1:1)*(keys.W?1:3)*45;
@@ -142,26 +191,212 @@ export default class Player extends Entity {
         else if (keys.S)
             speedYaw -= 180;
         speedYaw *= Math.PI/180;
-
-
-        var playerVelocity = 0.1,
-            f = (i, j, k) =>
+        
+        
+        this.vel.y -= this.gravity * delta;
+        if (keys.A || keys.D || keys.S || keys.W) {
+            let d = new Vec3(this.moveSpeed* -Math.sin(speedYaw), 0
+                   , this.moveSpeed* -Math.cos(speedYaw));
+            this.vel = this.vel["+"](d);
+        }
+        
+        this.rest = new Vec3();
+        let pos = this.position["+"](this.vel.scale(delta));
+        
+        
+        const fn = (i, j, k) =>
                 this.world.getTile(i, j, k).name === "air" &&
                 this.world.getTile(i, j-1, k).name === "air";
-//            f = (x, z) => true;
-        if (keys.A || keys.D || keys.S || keys.W) {
-            var x = this.x + playerVelocity* -Math.sin(speedYaw),
-                z = this.z + playerVelocity* -Math.cos(speedYaw);
-            if (f(x, this.y, this.z)) this.x = x;
-            if (f(this.x, this.y, z)) this.z = z;
+        if (!fn(pos.x, this.y, this.z)) pos.x = this.x;
+        if (!fn(this.x, this.y, pos.z)) pos.z = this.z;
+        if (this.world.getTile(pos.x, pos.y, pos.z).name !== "air") {
+            this.rest.y = 1;
+            this.vel.y = 0;
+            pos.y = this.y;
         }
-//        var y = this.y + (keys.X||keys[16]?-1:keys[32]?1:0)*playerVelocity;
-//        this.y = y;
-        var y = this.y + (keys[32]? 0.2: -0.1);
-        if (f(this.x, ~~y, this.z)) this.y = y;
-        else this.y = Math.round(y);
-
-        document.getElementById("out").innerHTML = `x: ${this.x}<br>y: ${this.y}<br>z: ${this.z}<br>yaw: ${this.yaw}<br>pitch: ${this.pitch}`;
+        if (this.world.getTile(pos.x, (~~pos.y) - 1, pos.z).name !== "air") {
+            this.rest.y = -1;
+            this.vel.y = 0;
+            pos.y = Math.round(this.y);
+        }
+        this.position = pos;
+        this.vel.x = this.vel.z = 0;
+        if (this.isFly) this.vel.y = 0;
+        
+        
+        document.getElementById("out").innerHTML = `x: ${this.x}<br>y: ${this.y}<br>z: ${this.z}<br>yaw: ${this.yaw}<br>pitch: ${this.pitch}<br>fps: ${1 / delta}`;
     };
+    
+//    accelerate(acc, delta) {
+//        this.vel = this.vel.add((new Vec3(acc)).scale(delta));
+//	}
+//	
+//	move(vel, delta) {
+//        let deltavel = vel.scale(delta),
+//            pos = this.position["+"](deltavel),
+//            f = (i, j, k) =>
+//                this.world.getTile(i, j, k).name !== "air";
+//        this.rest = new Vec3();
+////        this.rest.x = this.rest.z = 0;
+//        
+//        let [ix, iy, iz] = this.boxmin.add(pos);
+//        let [ax, ay, az] = this.boxmax.add(pos);
+//        let mx = ix + (ax - ix) / 2,
+//            my = iy + (ay - iy) / 2,
+//            mz = iz + (az - iz) / 2;
+//        
+//        if (f(ix, ay, mz)) {
+//            this.rest.x = -1;
+//            if (this.vel.x <= 0) {
+//                vel.x = deltavel.x = 0;
+//                pos.x = this.x;
+//            }
+//        }
+//        if (f(ix, iy + 1, mz)) {
+//            this.rest.x = -1;
+//            if (this.vel.x <= 0) {
+//                vel.x = deltavel.x = 0;
+//                pos.x = this.x;
+//            }
+//        }
+//        
+//        if (f(ax, ay, mz)) {
+//            this.rest.x = 1;
+//            if (this.vel.x >=0) {
+//                vel.x = deltavel.x = 0;
+//                pos.x = this.x;
+//            }
+//        }
+//        if (f(ax, iy + 1, mz)) {
+//            this.rest.x = 1;
+//            if (this.vel.x >=0) {
+//                vel.x = deltavel.x = 0;
+//                pos.x = this.x;
+//            }
+//        }
+//        
+//        if (f(mx, ay, iz)) {
+//            this.rest.z = -1;
+//            if (this.vel.z <= 0) {
+//                vel.z = deltavel.z = 0;
+//                pos.z = this.z;
+//            }
+//        }
+//        if (f(mx, iy + 1, iz)) {
+//            this.rest.z = -1;
+//            if (this.vel.z <= 0) {
+//                vel.z = deltavel.z = 0;
+//                pos.z = this.z;
+//            }
+//        }
+//        if (f(mx, ay, az)) {
+//            this.rest.z = 1;
+//            if (this.vel.z >= 0) {
+//                vel.z = deltavel.z = 0;
+//                pos.z = this.z;
+//            }
+//        }
+//        if (f(mx, iy + 1, az)) {
+//            this.rest.z = 1;
+//            if (this.vel.z >= 0) {
+//                vel.z = deltavel.z = 0;
+//                pos.z = this.z;
+//            }
+//        }
+//        
+//        if (f(mx, iy, mz)) {
+//            this.rest.y = -1;
+//            if (vel.y <= 0) {
+//                vel.y = deltavel.y = 0;
+//                pos.y = this.y;
+//            }
+//            else this.rest.y = 0;
+//        }
+//        if (f(mx, ay, mz)) {
+//            this.rest.y = 1;
+//            if (vel.y >= 0) {
+//                vel.y = deltavel.y = 0;
+//                pos.y = this.y;
+//            }
+//        }
+//        
+//        
+////        if (!f(this.x, pos.y, pos.z)) {
+////            this.rest.x = 1;
+////            vel.x = deltavel.x = 0;
+////            pos.x = this.x;
+////        }
+////        if (!f(pos.x, pos.y, this.z)) {
+////            this.rest.z = 1;
+////            vel.z = deltavel.z = 0;
+////            pos.z = this.z;
+////        }
+////        if (f(pos.x, Math.round(this.y), pos.z) || f(pos.x, Math.round(this.y)-1, pos.z)) {
+////            this.rest.y = -1;
+////            vel.y = deltavel.y = 0;
+////            pos.y = Math.round(this.y);
+////        }
+//        this.position = pos;
+////        console.log(this.rest);
+//        console.log(this.vel, this.rest);
+//	}
+//    
+//    upData(delta) {
+//        
+//        const {keys} = this.controller;
+//        if (this.pitch*180/Math.PI < -90)
+//            this.pitch = -Math.PI/2;
+//        else if (this.pitch*180/Math.PI > 90)
+//            this.pitch = Math.PI/2;
+//        
+//        if (keys[32] && this.rest.y === -1) {
+//            console.log("asdf");
+//            this.accelerate([0, this.jumpSpeed, 0], 1);
+//        }
+//        
+//        var speedYaw = this.yaw*180/Math.PI;
+//        if ((keys.W || keys.S) && (keys.A || keys.D))
+//            speedYaw -= (keys.A?-1:1)*(keys.W?1:3)*45;
+//        else if (keys.A || keys.D)
+//            speedYaw -= 90*(keys.A?-1:1);
+//        else if (keys.S)
+//            speedYaw -= 180;
+//        speedYaw *= Math.PI/180;
+//        
+//        
+//        this.accelerate(this.acc, delta);
+//        if (keys.A || keys.D || keys.S || keys.W) {
+//            let d = new Vec3(this.moveSpeed* -Math.sin(speedYaw), 0
+//                   , this.moveSpeed* -Math.cos(speedYaw));
+////            if (this.rest.x) d.x = 0;
+////            if (this.rest.z) d.z = 0;
+//            this.vel = this.vel["+"](d);
+//        }
+//        this.move(this.vel, delta);
+//        this.vel.x = this.vel.z = 0;
+////
+////
+////        var playerVelocity = 0.1,
+////            f = (i, j, k) =>
+////                this.world.getTile(i, j, k).name === "air" &&
+////                this.world.getTile(i, j-1, k).name === "air";
+//////            f = (x, z) => true;
+////        if (keys.A || keys.D || keys.S || keys.W) {
+////            var x = this.x + playerVelocity* -Math.sin(speedYaw),
+////                z = this.z + playerVelocity* -Math.cos(speedYaw);
+////            if (f(x, this.y, this.z)) this.x = x;
+////            if (f(this.x, this.y, z)) this.z = z;
+////        }
+//////        var y = this.y + (keys.X||keys[16]?-1:keys[32]?1:0)*playerVelocity;
+//////        this.y = y;
+////        let f = (i, j, k) =>
+////                this.world.getTile(i, j, k).name === "air" &&
+////                this.world.getTile(i, j-1, k).name === "air";
+////        var y = this.y + (keys[32]? 0.2: -0.1);
+////        if (f(this.x, ~~y, this.z)) this.y = y;
+////        else this.y = Math.round(y);
+//
+//        document.getElementById("out").innerHTML = `x: ${this.x}<br>y: ${this.y}<br>z: ${this.z}<br>yaw: ${this.yaw}<br>pitch: ${this.pitch}<br>fps: ${1 / delta}`;
+//    };
 
 }
